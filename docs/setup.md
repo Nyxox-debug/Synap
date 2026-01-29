@@ -34,3 +34,18 @@ or alternatively, enter the build directory and run `make`:
 cd build
 make
 ```
+
+> I use `direnv` for automatic environment variable setup.
+
+### `.envrc`
+```bash
+export PYTHONPATH=$PWD/build
+````
+
+For the LSP:
+
+> **Note:** Use the name of the module used in the C++ file.
+
+```bash
+pybind11-stubgen example
+```
