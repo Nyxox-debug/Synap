@@ -1,0 +1,38 @@
+# CMake build directory
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/compile_commands.json
+/Makefile
+
+# Compiled Python extensions
+*.so
+*.pyd
+
+# Python virtual environment
+/venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pyright / LSP cache
+/pyrightconfig.json
+.mypy_cache/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Docs build (if you use Sphinx or similar)
+docs/_build/
+
+# Mac / Linux system files
+.DS_Store
+Thumbs.db
