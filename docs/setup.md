@@ -42,7 +42,7 @@ make
 export PYTHONPATH=$PWD/build
 ````
 
-For the LSP:
+For setup of Stub for lsp:
 
 > **Note:** Use the name of the module used in the C++ file.
 
