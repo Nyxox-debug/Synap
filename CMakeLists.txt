@@ -6,4 +6,7 @@ find_package(pybind11 REQUIRED)
 
 
 # Create Python module
-pybind11_add_module(example example.cpp)
+pybind11_add_module(example
+    src/bindings.cpp
+    src/tensor/tensor.cpp
+)
