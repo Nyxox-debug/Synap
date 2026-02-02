@@ -7,7 +7,7 @@ class Tensor {
 public:
   Tensor(std::vector<size_t> shape, bool requires_grad = false);
 
-  // view constructor
+  // view constructor, used to setup metadata for Linear memory
   Tensor(StoragePtr storage, std::vector<size_t> shape,
          std::vector<size_t> stride, size_t offset, bool requires_grad);
 

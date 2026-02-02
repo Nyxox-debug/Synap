@@ -35,17 +35,35 @@ cd build
 make
 ```
 
-> I use `direnv` for automatic environment variable setup.
-
-### `.envrc`
-```bash
-export PYTHONPATH=$PWD/build
-````
+## 4. Lsp Configuration
 
 For setup of Stub for lsp:
 
 > **Note:** Use the name of the module used in the C++ file.
 
 ```bash
-pybind11-stubgen example
+pybind11-stubgen synap 
 ```
+
+I use pyright, so i configured the stubPath
+`pyrightconfig.json`
+
+```json
+{
+  "typeCheckingMode": "basic",
+  "stubPath": "./stubs",
+  "extraPaths": [
+    "./build",
+    "./build/stubs/"
+  ]
+}
+```
+
+> **NOTE:** I use `direnv` for automatic environment variable setup.
+
+### `.envrc`
+```bash
+# .envrc
+export PYTHONPATH=$PWD/build
+source $PWD/venv/bin/activate  # adjust path if your venv folder is different
+````

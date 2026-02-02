@@ -1,0 +1,8 @@
+{
+  "typeCheckingMode": "basic",
+  "stubPath": "./stubs",
+  "extraPaths": [
+    "./build",
+    "./build/stubs/"
+  ]
+}

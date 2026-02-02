@@ -1,5 +1,7 @@
 # Tensor
 
+> **NOTE:** Slices and views are not diff or copy of tensors but the actual tensor indicated with the offset 
+
 Shape is the dimension of a tensor
 Stride 
 

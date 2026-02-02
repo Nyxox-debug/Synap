@@ -3,7 +3,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "build"))
 
-from example import Tensor
+from synap import Tensor
 
 def banner(msg):
     print(f"\n=== {msg} ===")

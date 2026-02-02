@@ -19,7 +19,7 @@ __pycache__/
 *$py.class
 
 # Pyright / LSP cache
-/pyrightconfig.json
+# /pyrightconfig.json
 .mypy_cache/
 
 # IDE/editor files
