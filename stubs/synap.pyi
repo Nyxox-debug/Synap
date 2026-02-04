@@ -3,7 +3,46 @@ from __future__ import annotations
 import collections.abc
 import typing
 
-__all__: list[str] = ["Tensor"]
+__all__: list[str] = ["Tensor", "Value"]
+
+
+class Value:
+    """
+    Scalar value supporting reverse-mode automatic differentiation.
+
+    `Value` represents a single scalar node in a computational graph.
+    It stores a numerical value, accumulates gradients, and supports
+    backpropagation via `backward()`.
+    """
+
+    data: float
+    grad: float
+
+    def __init__(self, data: float) -> None:
+        """
+        Create a scalar value.
+
+        Parameters
+        ----------
+        data:
+            The numerical value of this node.
+        """
+        ...
+
+    def backward(self) -> None:
+        """
+        Perform reverse-mode automatic differentiation.
+
+        Computes gradients for all ancestor nodes in the computation graph.
+        """
+        ...
+
+    def __add__(self, other: Value) -> Value:
+        ...
+
+    def __mul__(self, other: Value) -> Value:
+        ...
+
 
 class Tensor:
     """

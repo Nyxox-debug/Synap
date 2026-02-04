@@ -9,4 +9,5 @@ find_package(pybind11 REQUIRED)
 pybind11_add_module(synap
     src/bindings.cpp
     src/tensor/tensor.cpp
+    src/tensor/autodiff.cpp
 )
