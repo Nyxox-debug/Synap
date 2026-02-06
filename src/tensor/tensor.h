@@ -1,4 +1,3 @@
-// FIX: 1 errs
 #pragma once
 #include "storage.h"
 #include <functional>
@@ -9,8 +8,6 @@
 class Tensor : public std::enable_shared_from_this<Tensor> {
 public:
   Tensor(std::vector<size_t> shape, bool requires_grad = false);
-
-  // view constructor, used to setup metadata for Linear memory
   Tensor(StoragePtr storage, std::vector<size_t> shape,
          std::vector<size_t> stride, size_t offset, bool requires_grad);
 
@@ -27,13 +24,8 @@ public:
   bool requires_grad;
   std::shared_ptr<Tensor> grad;
 
-  // friend declarations
   friend std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
                                      const std::shared_ptr<Tensor> &b);
-
-  void ::build_topo(const std::shared_ptr<Tensor> &t,
-                           std::unordered_set<Tensor *> &visited,
-                           std::vector<std::shared_ptr<Tensor>> &topo);
 
 private:
   StoragePtr storage_;
@@ -43,6 +35,7 @@ private:
   std::vector<std::shared_ptr<Tensor>> parents_;
   std::function<void()> backward_fn_;
 
+private:
   static void build_topo(const std::shared_ptr<Tensor> &t,
                          std::unordered_set<Tensor *> &visited,
                          std::vector<std::shared_ptr<Tensor>> &topo);

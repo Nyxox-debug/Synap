@@ -60,66 +60,67 @@ void Tensor::zero_grad() {
   std::fill(grad->data(), grad->data() + n, 0.0f);
 }
 
- static void build_topo(
-    const std::shared_ptr<Tensor>& t,
-    std::unordered_set<Tensor*>& visited,
-    std::vector<std::shared_ptr<Tensor>>& topo) {
+void Tensor::build_topo(const std::shared_ptr<Tensor> &t,
+                        std::unordered_set<Tensor *> &visited,
+                        std::vector<std::shared_ptr<Tensor>> &topo) {
 
-    if (visited.count(t.get())) return;
-    visited.insert(t.get());
+  if (visited.count(t.get()))
+    return;
+  visited.insert(t.get());
 
-    for (auto& p : t->parents_) {
-        build_topo(p, visited, topo);
-    }
+  for (auto &p : t->parents_) {
+    build_topo(p, visited, topo);
+  }
 
-    topo.push_back(t);
+  topo.push_back(t);
 }
 
 void Tensor::backward() {
-    if (numel(shape_) != 1)
-        throw std::runtime_error("backward() only supported for scalar tensors");
+  if (numel(shape_) != 1)
+    throw std::runtime_error("backward() only supported for scalar tensors");
 
-    if (!grad) {
-        grad = std::make_shared<Tensor>(shape_, false);
-    }
+  if (!grad) {
+    grad = std::make_shared<Tensor>(shape_, false);
+  }
 
-    grad->data()[0] = 1.0f;
+  grad->data()[0] = 1.0f;
 
-    std::vector<std::shared_ptr<Tensor>> topo;
-    std::unordered_set<Tensor*> visited;
+  std::vector<std::shared_ptr<Tensor>> topo;
+  std::unordered_set<Tensor *> visited;
 
-    build_topo(shared_from_this(), visited, topo);
+  build_topo(shared_from_this(), visited, topo);
 
-    for (auto it = topo.rbegin(); it != topo.rend(); ++it) {
-        (*it)->backward_fn_();
-    }
+  for (auto it = topo.rbegin(); it != topo.rend(); ++it) {
+    (*it)->backward_fn_();
+  }
 }
 
-std::shared_ptr<Tensor> Tensor::add(
-    const std::shared_ptr<Tensor>& a,
-    const std::shared_ptr<Tensor>& b) {
+std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
+                            const std::shared_ptr<Tensor> &b) {
+  if (a->shape_ != b->shape_)
+    throw std::runtime_error("Shape mismatch in add");
 
-    if (a->shape_ != b->shape_)
-        throw std::runtime_error("Shape mismatch in add");
+  auto out =
+      std::make_shared<Tensor>(a->shape_, a->requires_grad || b->requires_grad);
 
-    auto out = std::make_shared<Tensor>(a->shape_, a->requires_grad || b->requires_grad);
+  size_t n = numel(a->shape_);
+  for (size_t i = 0; i < n; ++i) {
+    out->data()[i] = a->data()[i] + b->data()[i];
+  }
 
-    size_t n = numel(a->shape_);
-    for (size_t i = 0; i < n; ++i) {
-        out->data()[i] = a->data()[i] + b->data()[i];
-    }
+  if (out->requires_grad) {
+    out->parents_ = {a, b}; // allowed because add is a friend
 
-    if (out->requires_grad) {
-        out->parents_ = {a, b};
+    out->backward_fn_ = [out, a, b]() {
+      size_t n = numel(out->shape_);
+      for (size_t i = 0; i < n; ++i) {
+        if (a->grad)
+          a->grad->data()[i] += out->grad->data()[i];
+        if (b->grad)
+          b->grad->data()[i] += out->grad->data()[i];
+      }
+    };
+  }
 
-        out->backward_fn_ = [out, a, b]() {
-            size_t n = numel(out->shape_);
-            for (size_t i = 0; i < n; ++i) {
-                if (a->grad) a->grad->data()[i] += out->grad->data()[i];
-                if (b->grad) b->grad->data()[i] += out->grad->data()[i];
-            }
-        };
-    }
-
-    return out;
+  return out;
 }
