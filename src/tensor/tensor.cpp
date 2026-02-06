@@ -12,13 +12,13 @@ static size_t numel(const std::vector<size_t> &shape) {
 Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
     : shape_(shape), offset_(0), requires_grad(requires_grad) {
 
-  size_t n = numel(shape);
+  size_t n = numel(shape); // Total number of elements in Tensor
   storage_ = std::make_shared<Storage>(n);
   backward_fn_ = [] {};
 
-  stride_.resize(shape.size());
+  stride_.resize(shape.size()); // NOTE: .resize ensures stride has one element per dimension
   size_t s = 1;
-  for (int i = shape.size() - 1; i >= 0; --i) {
+  for (int i = shape.size() - 1; i >= 0; --i) { // i represents a dimension
     stride_[i] = s;
     s *= shape[i];
   }
