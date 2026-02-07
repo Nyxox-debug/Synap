@@ -1,4 +1,3 @@
-// FIX: 3 errs
 #include "tensor.h"
 #include <numeric>
 #include <stdexcept>
