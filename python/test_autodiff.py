@@ -1,3 +1,4 @@
+# FIX: This has been removed
 from synap import Value
 
 def banner(msg):

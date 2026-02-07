@@ -28,6 +28,7 @@ Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
   }
 }
 
+// NOTE: View into existing Tensor memory
 Tensor::Tensor(StoragePtr storage, std::vector<size_t> shape,
                std::vector<size_t> stride, size_t offset, bool requires_grad)
     : storage_(storage), shape_(shape), stride_(stride), offset_(offset),
