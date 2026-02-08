@@ -58,3 +58,5 @@ I use pyright, so i configured the stubPath
 export PYTHONPATH=$PWD/build
 source $PWD/venv/bin/activate  # adjust path if your venv folder is different
 ````
+
+> **NOTE:** in the pyfile use help(synap) for information concering synap library
