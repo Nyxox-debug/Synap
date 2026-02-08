@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include <memory>
 #include <numeric>
 #include <stdexcept>
 #include <unordered_set>
@@ -15,7 +16,8 @@ Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
   storage_ = std::make_shared<Storage>(n);
   backward_fn_ = [] {};
 
-  stride_.resize(shape.size()); // NOTE: .resize ensures stride has one element per dimension
+  stride_.resize(shape.size()); // NOTE: .resize ensures stride has one element
+                                // per dimension
   size_t s = 1;
   for (int i = shape.size() - 1; i >= 0; --i) { // i represents a dimension
     stride_[i] = s;
@@ -95,6 +97,36 @@ void Tensor::backward() {
   }
 }
 
+std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
+                            const std::shared_ptr<Tensor> &b) {
+  if (a->shape_ != b->shape_)
+    throw std::runtime_error("Shape mismatch in add");
+
+  auto out =
+      std::make_shared<Tensor>(a->shape_, a->requires_grad || b->requires_grad);
+
+  size_t n = numel(a->shape_);
+  for (size_t i = 0; i < n; ++i) {
+    out->data()[i] = a->data()[i] * b->data()[i];
+  }
+
+  if (out->requires_grad) {
+    out->parents_ = {a, b}; // NOTE: allowed because mul is a friend
+
+    out->backward_fn_ = [out, a, b]() {
+      size_t n = numel(out->shape_);
+      for (size_t i = 0; i < n; ++i) {
+        if (a->grad)
+          a->grad->data()[i] += b->data()[i] * out->grad->data()[i];
+        if (b->grad)
+          b->grad->data()[i] += a->data()[i] * out->grad->data()[i];
+      }
+    };
+  }
+
+  return out;
+};
+
 std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
                             const std::shared_ptr<Tensor> &b) {
   if (a->shape_ != b->shape_)
@@ -109,7 +141,7 @@ std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
   }
 
   if (out->requires_grad) {
-    out->parents_ = {a, b}; // allowed because add is a friend
+    out->parents_ = {a, b}; // NOTE: allowed because add is a friend
 
     out->backward_fn_ = [out, a, b]() {
       size_t n = numel(out->shape_);

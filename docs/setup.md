@@ -2,17 +2,7 @@
 
 ## 1. Install pybind11 system-wide
 
-For Debian/Ubuntu-based systems:
-
-```bash
-sudo apt install pybind11-dev
-````
-
-For Arch Linux:
-
-```bash
-sudo pacman -S pybind11
-```
+You don't need to I updated to use git submodule so pybind11 is at `/extern/pybind11`
 
 ## 2. Configure the project
 
@@ -35,7 +25,7 @@ cd build
 make
 ```
 
-## 4. Lsp Configuration
+## 4. Lsp Configuration although I already have the stubs at `/stubs`
 
 For setup of Stub for lsp:
 
@@ -62,6 +52,7 @@ I use pyright, so i configured the stubPath
 > **NOTE:** I use `direnv` for automatic environment variable setup.
 
 ### `.envrc`
+
 ```bash
 # .envrc
 export PYTHONPATH=$PWD/build

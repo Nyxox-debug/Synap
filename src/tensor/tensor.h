@@ -27,6 +27,9 @@ public:
   friend std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
                                      const std::shared_ptr<Tensor> &b);
 
+  friend std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
+                                     const std::shared_ptr<Tensor> &b);
+
 private:
   StoragePtr storage_;
   std::vector<size_t> shape_;
