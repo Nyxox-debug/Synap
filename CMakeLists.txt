@@ -11,8 +11,8 @@ add_subdirectory(extern/pybind11)
 # Create Python module
 pybind11_add_module(synap
     src/bindings.cpp
-    src/tensor/tensor.cpp
-    src/tensor/autodiff.cpp
+    src/synap/tensor.cpp
+    src/synap/autodiff.cpp
 )
 
 # find_package(Python3 REQUIRED COMPONENTS Interpreter)

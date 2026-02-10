@@ -1,4 +1,4 @@
-#include "tensor/tensor.h"
+#include "synap/tensor.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
