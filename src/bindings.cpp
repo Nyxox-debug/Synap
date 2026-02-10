@@ -40,6 +40,8 @@ PYBIND11_MODULE(synap, m) {
       .def_static("mul",
                   [](const std::shared_ptr<Tensor> &a,
                      const std::shared_ptr<Tensor> &b) { return mul(a, b); })
+      .def_static("mean",
+                  [](const std::shared_ptr<Tensor> &a) { return mean(a); })
       // Scalar Sink
       .def_static("sum",
                   [](const std::shared_ptr<Tensor> &a) { return sum(a); });

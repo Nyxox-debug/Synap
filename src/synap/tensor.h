@@ -33,6 +33,8 @@ public:
 
   friend std::shared_ptr<Tensor> sum(const std::shared_ptr<Tensor> &x);
 
+  friend std::shared_ptr<Tensor> mean(const std::shared_ptr<Tensor> &x);
+
 private:
   StoragePtr storage_;
   std::vector<size_t> shape_;

@@ -201,3 +201,9 @@ void Tensor::set_values(const std::vector<float>& values) {
         throw std::runtime_error("set_values: size mismatch");
     std::copy(values.begin(), values.end(), data());
 }
+
+std::shared_ptr<Tensor> mean(const std::shared_ptr<Tensor>& x) {
+    auto s = sum(x);
+    s->data()[0] /= numel(x->shape_);
+    return s;
+}

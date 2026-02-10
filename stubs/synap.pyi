@@ -158,6 +158,25 @@ class Tensor:
             Result of multiplying a and b element-wise.
         """
         ...
+    @staticmethod
+    def mean(a: "Tensor") -> "Tensor":
+        """
+        Compute the arithmetic mean of all elements in a tensor.
+
+        Acts as a scalar sink for backpropagation, reducing the tensor
+        to a single scalar value.
+
+        Parameters
+        ----------
+        a : Tensor
+            Input tensor of any shape.
+
+        Returns
+        -------
+        Tensor
+            Scalar tensor containing the average of all elements in `a`.
+        """
+        ...
 
     @staticmethod
     def sum(a: "Tensor") -> "Tensor":
