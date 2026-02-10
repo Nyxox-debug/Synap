@@ -48,6 +48,13 @@ PYBIND11_MODULE(synap, m) {
                      const std::shared_ptr<Tensor> &b) { return div(a, b); })
       .def_static("mean",
                   [](const std::shared_ptr<Tensor> &a) { return mean(a); })
+
+      // Linear Algebra Ops
+      .def_static("transpose",
+                  [](const std::shared_ptr<Tensor> &a) { return transpose(a); })
+      .def_static("matmul",
+                  [](const std::shared_ptr<Tensor> &a,
+                     const std::shared_ptr<Tensor> &b) { return matmul(a, b); })
       // Scalar Sink
       .def_static("sum",
                   [](const std::shared_ptr<Tensor> &a) { return sum(a); });

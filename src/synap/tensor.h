@@ -41,6 +41,11 @@ public:
 
   friend std::shared_ptr<Tensor> mean(const std::shared_ptr<Tensor> &x);
 
+  friend std::shared_ptr<Tensor> transpose(const std::shared_ptr<Tensor> &x);
+
+  friend std::shared_ptr<Tensor> matmul(const std::shared_ptr<Tensor> &x,
+                                        const std::shared_ptr<Tensor> &b);
+
 private:
   StoragePtr storage_;
   std::vector<size_t> shape_;

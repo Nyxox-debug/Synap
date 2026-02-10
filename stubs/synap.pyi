@@ -247,6 +247,50 @@ class Tensor:
         """
         ...
 
+    @staticmethod
+    def transpose(a: "Tensor") -> "Tensor":
+        """
+        Return the transpose of a 2D tensor.
+
+        Forward pass swaps rows and columns. Used in matmul and other linear
+        algebra operations. Backward pass transposes the gradient.
+
+        Parameters
+        ----------
+        a : Tensor
+            Input 2D tensor.
+
+        Returns
+        -------
+        Tensor
+            New tensor containing the transposed data.
+        """
+        ...
+
+    @staticmethod
+    def matmul(a: "Tensor", b: "Tensor") -> "Tensor":
+        """
+        Perform matrix multiplication of two 2D tensors.
+
+        Forward pass computes standard matrix product. Backward pass propagates
+        gradients to both inputs using:
+            dA = grad_out @ B.T
+            dB = A.T @ grad_out
+
+        Parameters
+        ----------
+        a : Tensor
+            Left-hand side 2D tensor.
+        b : Tensor
+            Right-hand side 2D tensor.
+
+        Returns
+        -------
+        Tensor
+            Result of matrix multiplication.
+        """
+        ...
+
 def tensor_data(t: Tensor) -> list[float]:
     """
     Return the tensor values as a Python list.

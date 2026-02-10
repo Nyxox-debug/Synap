@@ -267,3 +267,76 @@ std::shared_ptr<Tensor> mean(const std::shared_ptr<Tensor> &x) {
   s->data()[0] /= numel(x->shape_);
   return s;
 }
+
+std::shared_ptr<Tensor> transpose(const std::shared_ptr<Tensor> &x) {
+  if (x->shape_.size() != 2)
+    throw std::runtime_error("transpose only supports 2D tensors");
+
+  auto out = std::make_shared<Tensor>(
+      std::vector<size_t>{x->shape_[1], x->shape_[0]}, x->requires_grad);
+
+  for (size_t i = 0; i < x->shape_[0]; ++i) {
+    for (size_t j = 0; j < x->shape_[1]; ++j) {
+      out->data()[j * x->shape_[0] + i] = x->data()[i * x->shape_[1] + j];
+    }
+  }
+
+  if (out->requires_grad) {
+    out->parents_ = {x};
+    out->backward_fn_ = [out, x]() {
+      // grad of transpose is just transpose of grad
+      for (size_t i = 0; i < x->shape_[0]; ++i)
+        for (size_t j = 0; j < x->shape_[1]; ++j)
+          x->grad->data()[i * x->shape_[1] + j] +=
+              out->grad->data()[j * x->shape_[0] + i];
+    };
+  }
+
+  return out;
+}
+
+std::shared_ptr<Tensor> matmul(const std::shared_ptr<Tensor> &a,
+                               const std::shared_ptr<Tensor> &b) {
+  if (a->shape_.size() != 2 || b->shape_.size() != 2)
+    throw std::runtime_error("matmul supports only 2D tensors");
+  if (a->shape_[1] != b->shape_[0])
+    throw std::runtime_error("matmul shape mismatch");
+
+  size_t M = a->shape_[0];
+  size_t K = a->shape_[1];
+  size_t N = b->shape_[1];
+
+  auto out = std::make_shared<Tensor>(std::vector<size_t>{M, N},
+                                      a->requires_grad || b->requires_grad);
+
+  for (size_t i = 0; i < M; ++i)
+    for (size_t j = 0; j < N; ++j) {
+      float sum = 0.0f;
+      for (size_t k = 0; k < K; ++k)
+        sum += a->data()[i * K + k] * b->data()[k * N + j];
+      out->data()[i * N + j] = sum;
+    }
+
+  if (out->requires_grad) {
+    out->parents_ = {a, b};
+    out->backward_fn_ = [out, a, b, M, K, N]() {
+      // d(out)/da = grad_out * B^T
+      // d(out)/db = A^T * grad_out
+      for (size_t i = 0; i < M; ++i)
+        for (size_t j = 0; j < K; ++j)
+          if (a->requires_grad)
+            for (size_t n = 0; n < N; ++n)
+              a->grad->data()[i * K + j] +=
+                  out->grad->data()[i * N + n] * b->data()[j * N + n];
+
+      for (size_t i = 0; i < K; ++i)
+        for (size_t j = 0; j < N; ++j)
+          if (b->requires_grad)
+            for (size_t m = 0; m < M; ++m)
+              b->grad->data()[i * N + j] +=
+                  a->data()[m * K + i] * out->grad->data()[m * N + j];
+    };
+  }
+
+  return out;
+}
