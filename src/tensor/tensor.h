@@ -20,6 +20,7 @@ public:
 
   void zero_grad();
   void backward(std::shared_ptr<Tensor> grad_output);
+  void set_values(const std::vector<float> &values);
 
   bool requires_grad;
   std::shared_ptr<Tensor> grad;
@@ -29,6 +30,8 @@ public:
 
   friend std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
                                      const std::shared_ptr<Tensor> &b);
+
+  friend std::shared_ptr<Tensor> sum(const std::shared_ptr<Tensor> &x);
 
 private:
   StoragePtr storage_;

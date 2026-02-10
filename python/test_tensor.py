@@ -31,5 +31,16 @@ def test_tensor_add_and_backward():
     print("scalar_a.grad shape:", scalar_a.grad.shape())
     print("scalar_b.grad shape:", scalar_b.grad.shape())
 
+def test_scalar_sink():
+    t = synap.Tensor([2, 3], requires_grad=True)
+    t.set_values([1, 2, 3, 4, 5, 6])
+
+    s = synap.Tensor.sum(t)
+    print("Sum value:", synap.tensor_data(s))  # should print [21.0]
+
+    s.backward()
+    print("Gradient of t after sum backward:", t.grad_values)  # all ones
+
 if __name__ == "__main__":
     test_tensor_add_and_backward()
+    test_scalar_sink()

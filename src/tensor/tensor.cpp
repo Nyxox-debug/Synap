@@ -172,3 +172,32 @@ std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
 
   return out;
 }
+
+std::shared_ptr<Tensor> sum(const std::shared_ptr<Tensor> &x) {
+    auto out = std::make_shared<Tensor>(std::vector<size_t>{1}, x->requires_grad);
+
+    size_t n = numel(x->shape_);
+    float s = 0.0f;
+    for (size_t i = 0; i < n; ++i)
+        s += x->data()[i];
+    out->data()[0] = s;
+
+    if (out->requires_grad) {
+        out->parents_ = {x};
+        out->backward_fn_ = [out, x, n]() {
+            // grad of sum w.r.t each element is 1
+            for (size_t i = 0; i < n; ++i)
+                x->grad->data()[i] += out->grad->data()[0];
+        };
+    }
+
+    return out;
+}
+
+
+void Tensor::set_values(const std::vector<float>& values) {
+    size_t n = numel(shape_);
+    if (values.size() != n)
+        throw std::runtime_error("set_values: size mismatch");
+    std::copy(values.begin(), values.end(), data());
+}

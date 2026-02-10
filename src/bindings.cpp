@@ -13,6 +13,7 @@ PYBIND11_MODULE(synap, m) {
       .def("shape", &Tensor::shape)
       .def("clone", &Tensor::clone)
       .def("view", &Tensor::view)
+      .def("set_values", &Tensor::set_values)
       .def("zero_grad", &Tensor::zero_grad)
       .def("backward", [](Tensor &self) { self.backward(nullptr); })
       .def("backward",
@@ -32,12 +33,18 @@ PYBIND11_MODULE(synap, m) {
                                                          t->grad->data() + n);
                              })
 
-      // Bind add as a static method
+      // Sum and Mul
       .def_static("add",
                   [](const std::shared_ptr<Tensor> &a,
-                     const std::shared_ptr<Tensor> &b) { return add(a, b); });
+                     const std::shared_ptr<Tensor> &b) { return add(a, b); })
+      .def_static("mul",
+                  [](const std::shared_ptr<Tensor> &a,
+                     const std::shared_ptr<Tensor> &b) { return mul(a, b); })
+      // Scalar Sink
+      .def_static("sum",
+                  [](const std::shared_ptr<Tensor> &a) { return sum(a); });
 
-  // Optional: expose data for inspection as a Python list
+  // Exposing Data for python with a python List
   m.def("tensor_data", [](std::shared_ptr<Tensor> t) {
     size_t n = 1;
     for (auto s : t->shape())
