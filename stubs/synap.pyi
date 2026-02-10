@@ -82,12 +82,13 @@ class Tensor:
         """
         ...
 
-    def backward(self) -> None:
+    def backward(self, grad_output : Tensor | None = None) -> None:
         """
-        Perform backpropagation for scalar tensors.
+        Perform backpropagation.
 
-        Computes gradients for all tensors in the computation graph that
-        contributed to this tensor.
+        If grad_output is provided, it is used as the initial gradient.
+        Otherwise, the tensor is assumed to be scalar and a gradient of 1
+        is used.
         """
         ...
 
@@ -133,3 +134,31 @@ class Tensor:
             Resulting tensor after addition.
         """
         ...
+
+    @property
+    def grad_values(self) -> list[float]:
+        """
+        The gradient values as a Python list.
+
+        Returns
+        -------
+        list[float]
+            The elements of the grad tensor as a flat list.
+        """
+        ...
+
+def tensor_data(t: Tensor) -> list[float]:
+    """
+    Return the tensor values as a Python list.
+
+    Parameters
+    ----------
+    t:
+        Tensor to inspect.
+
+    Returns
+    -------
+    list[float]
+        Elements of the tensor as a flat list.
+    """
+    ...

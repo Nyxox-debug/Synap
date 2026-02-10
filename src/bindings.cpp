@@ -14,9 +14,24 @@ PYBIND11_MODULE(synap, m) {
       .def("clone", &Tensor::clone)
       .def("view", &Tensor::view)
       .def("zero_grad", &Tensor::zero_grad)
-      .def("backward", &Tensor::backward)
+      .def("backward", [](Tensor &self) { self.backward(nullptr); })
+      .def("backward",
+           [](Tensor &self, std::shared_ptr<Tensor> grad) {
+             self.backward(grad);
+           })
       .def_readonly("requires_grad", &Tensor::requires_grad)
       .def_readwrite("grad", &Tensor::grad)
+      .def_property_readonly("grad_values",
+                             [](std::shared_ptr<Tensor> t) {
+                               if (!t->grad)
+                                 return std::vector<float>{};
+                               size_t n = 1;
+                               for (auto s : t->grad->shape())
+                                 n *= s;
+                               return std::vector<float>(t->grad->data(),
+                                                         t->grad->data() + n);
+                             })
+
       // Bind add as a static method
       .def_static("add",
                   [](const std::shared_ptr<Tensor> &a,

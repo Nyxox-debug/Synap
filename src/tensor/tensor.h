@@ -19,7 +19,7 @@ public:
   Tensor view(std::vector<size_t> new_shape) const;
 
   void zero_grad();
-  void backward();
+  void backward(std::shared_ptr<Tensor> grad_output);
 
   bool requires_grad;
   std::shared_ptr<Tensor> grad;

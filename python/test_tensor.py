@@ -15,11 +15,12 @@ def test_tensor_add_and_backward():
     print("t2 shape:", t2.shape())
     print("t3 shape:", t3.shape())
 
-    # Run backward on t3 (will raise error for non-scalar)
-    try:
-        t3.backward()
-    except RuntimeError as e:
-        print("Expected error for non-scalar backward:", e)
+    t3.backward()
+
+    print("t2 grad values:", t2.grad_values)
+
+    # Inspect tensor values if needed
+    print("t3 values:", synap.tensor_data(t3))
 
     # Scalar tensor test
     scalar_a = synap.Tensor([1], requires_grad=True)

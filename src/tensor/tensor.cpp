@@ -77,21 +77,29 @@ void Tensor::build_topo(const std::shared_ptr<Tensor> &t,
   topo.push_back(t);
 }
 
-void Tensor::backward() {
-  if (numel(shape_) != 1)
-    throw std::runtime_error("backward() only supported for scalar tensors");
-
+void Tensor::backward(std::shared_ptr<Tensor> grad_output) {
+  // Allocate grad if needed
   if (!grad) {
     grad = std::make_shared<Tensor>(shape_, false);
   }
 
-  grad->data()[0] = 1.0f;
+  size_t n = numel(shape_);
 
+  if (grad_output) {
+    // Explicit upstream gradient
+    std::copy(grad_output->data(), grad_output->data() + n, grad->data());
+  } else {
+    // Implicit upstream gradient (PyTorch-style)
+    // Treat as: L = sum(this)
+    std::fill(grad->data(), grad->data() + n, 1.0f);
+  }
+
+  // Build topological order
   std::vector<std::shared_ptr<Tensor>> topo;
   std::unordered_set<Tensor *> visited;
-
   build_topo(shared_from_this(), visited, topo);
 
+  // Backpropagate
   for (auto it = topo.rbegin(); it != topo.rend(); ++it) {
     (*it)->backward_fn_();
   }
