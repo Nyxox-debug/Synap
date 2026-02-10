@@ -28,7 +28,13 @@ public:
   friend std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
                                      const std::shared_ptr<Tensor> &b);
 
+  friend std::shared_ptr<Tensor> sub(const std::shared_ptr<Tensor> &a,
+                                     const std::shared_ptr<Tensor> &b);
+
   friend std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
+                                     const std::shared_ptr<Tensor> &b);
+
+  friend std::shared_ptr<Tensor> div(const std::shared_ptr<Tensor> &a,
                                      const std::shared_ptr<Tensor> &b);
 
   friend std::shared_ptr<Tensor> sum(const std::shared_ptr<Tensor> &x);

@@ -141,6 +141,25 @@ class Tensor:
         ...
 
     @staticmethod
+    def sub(a: "Tensor", b: "Tensor") -> "Tensor":
+        """
+        Element-wise subtraction of two tensors.
+
+        Parameters
+        ----------
+        a : Tensor
+            Minuend tensor.
+        b : Tensor
+            Subtrahend tensor.
+
+        Returns
+        -------
+        Tensor
+            Result of subtracting b from a element-wise.
+        """
+        ...
+
+    @staticmethod
     def mul(a: "Tensor", b: "Tensor") -> "Tensor":
         """
         Element-wise multiplication of two tensors.
@@ -156,6 +175,25 @@ class Tensor:
         -------
         Tensor
             Result of multiplying a and b element-wise.
+        """
+        ...
+
+    @staticmethod
+    def div(a: "Tensor", b: "Tensor") -> "Tensor":
+        """
+        Element-wise division of two tensors.
+
+        Parameters
+        ----------
+        a : Tensor
+            Dividend tensor.
+        b : Tensor
+            Divisor tensor.
+
+        Returns
+        -------
+        Tensor
+            Result of dividing a by b element-wise.
         """
         ...
     @staticmethod

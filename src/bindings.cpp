@@ -33,13 +33,19 @@ PYBIND11_MODULE(synap, m) {
                                                          t->grad->data() + n);
                              })
 
-      // Sum and Mul
+      // Add, Sub,  Mul and Div
       .def_static("add",
                   [](const std::shared_ptr<Tensor> &a,
                      const std::shared_ptr<Tensor> &b) { return add(a, b); })
+      .def_static("sub",
+                  [](const std::shared_ptr<Tensor> &a,
+                     const std::shared_ptr<Tensor> &b) { return sub(a, b); })
       .def_static("mul",
                   [](const std::shared_ptr<Tensor> &a,
                      const std::shared_ptr<Tensor> &b) { return mul(a, b); })
+      .def_static("div",
+                  [](const std::shared_ptr<Tensor> &a,
+                     const std::shared_ptr<Tensor> &b) { return div(a, b); })
       .def_static("mean",
                   [](const std::shared_ptr<Tensor> &a) { return mean(a); })
       // Scalar Sink

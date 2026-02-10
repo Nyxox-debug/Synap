@@ -1,71 +1,76 @@
 import synap
 
-# NOTE: Tensor and Tensor_backward Test
-def test_tensor_add_and_backward():
-    print("=== Tensor Add + Backward Test ===")
+def create_tensor(shape, values=None, requires_grad=True):
+    t = synap.Tensor(shape, requires_grad=requires_grad)
+    if values is not None:
+        t.set_values(values)
+    return t
 
-    # Create two tensors
-    t1 = synap.Tensor([2, 2], requires_grad=True)
-    t2 = synap.Tensor([2, 2], requires_grad=True)
-    tA = synap.Tensor([2, 2], requires_grad=True)
-    tB = synap.Tensor([2, 2], requires_grad=True)
-    tA.set_values([1, 2, 3, 4])
-    tB.set_values([1, 2, 3, 4])
+def print_tensor_info(name, t):
+    print(f"{name} shape: {t.shape()}, values: {synap.tensor_data(t)}, grad: {t.grad_values}")
 
-    # Add them using the static method
-    t3 = synap.Tensor.add(t1, t2)
-    t4 = synap.Tensor.mul(tA, tB)
+# -----------------------------
+# Binary Operation + Backward Test
+# -----------------------------
+def test_binary_ops():
+    print("=== Binary Operations + Backward Test ===")
+    
+    a_vals = [1, 2, 3, 4]
+    b_vals = [2, 3, 4, 5]
+    
+    t1 = create_tensor([2, 2], a_vals)
+    t2 = create_tensor([2, 2], b_vals)
+    
+    ops = {
+        "add": synap.Tensor.add,
+        "sub": synap.Tensor.sub,
+        "mul": synap.Tensor.mul,
+        "div": synap.Tensor.div
+    }
 
-    print("t1 shape:", t1.shape())
-    print("t2 shape:", t2.shape())
-    print("t3 shape:", t3.shape())
+    for name, op in ops.items():
+        print(f"\n--- Testing {name} ---")
+        t_out = op(t1, t2)
+        t_out.backward()
+        print_tensor_info("t1", t1)
+        print_tensor_info("t2", t2)
+        print_tensor_info(f"t_out ({name})", t_out)
+        t1.zero_grad()
+        t2.zero_grad()
 
-    t3.backward()
-
-    print("t2 grad values:", t2.grad_values)
-
-    # Inspect tensor values if needed
-    print("t3 values:", synap.tensor_data(t3))
-    print("t4 values:", synap.tensor_data(t4))
-
-    # Scalar tensor test
-    scalar_a = synap.Tensor([1], requires_grad=True)
-    scalar_b = synap.Tensor([1], requires_grad=True)
-    scalar_c = synap.Tensor.add(scalar_a, scalar_b)
-
-    scalar_c.backward()
-    print("scalar_a.grad shape:", scalar_a.grad.shape())
-    print("scalar_b.grad shape:", scalar_b.grad.shape())
-
-# NOTE: Scalar Sink Test
-def test_scalar_sink():
-    t = synap.Tensor([2, 3], requires_grad=True)
-    t.set_values([1, 2, 3, 4, 5, 6])
-
+# -----------------------------
+# Scalar Sink (sum)
+# -----------------------------
+def test_scalar_sink_sum():
+    print("\n=== Scalar Sink Sum Test ===")
+    
+    t = create_tensor([2, 3], [1, 2, 3, 4, 5, 6])
     s = synap.Tensor.sum(t)
-    print("Sum value:", synap.tensor_data(s))  # should print [21.0]
-
+    
+    print("Sum value:", synap.tensor_data(s))  # [21.0]
+    
     s.backward()
     print("Gradient of t after sum backward:", t.grad_values)  # all ones
 
-def mean_test():
-    # Create a 2x2 tensor with requires_grad=True
-    t = synap.Tensor([2, 2], requires_grad=True)
-    t.set_values([1, 2, 3, 4])
-
-    # Compute the mean
+# -----------------------------
+# Mean Test
+# -----------------------------
+def test_mean_operation():
+    print("\n=== Mean Operation Test ===")
+    
+    t = create_tensor([2, 2], [1, 2, 3, 4])
     m = synap.Tensor.mean(t)
-    print("Mean Value:", synap.tensor_data(m))  # should print [2.5]
-
-    # Backward pass
+    
+    print("Mean value:", synap.tensor_data(m))  # [2.5]
+    
     m.backward()
+    print("Gradient of t after mean backward:", t.grad_values)  
+    # should be [0.25, 0.25, 0.25, 0.25]
 
-    # Print gradients of the original tensor
-    print("Gradient:", synap.tensor_data(t))  
-    # should print [0.25, 0.25, 0.25, 0.25] because d(mean)/dx_i = 1/4
-
-
+# -----------------------------
+# Main
+# -----------------------------
 if __name__ == "__main__":
-    test_tensor_add_and_backward()
-    test_scalar_sink()
-    mean_test()
+    test_binary_ops()
+    test_scalar_sink_sum()
+    test_mean_operation()

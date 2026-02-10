@@ -174,36 +174,96 @@ std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
 }
 
 std::shared_ptr<Tensor> sum(const std::shared_ptr<Tensor> &x) {
-    auto out = std::make_shared<Tensor>(std::vector<size_t>{1}, x->requires_grad);
+  auto out = std::make_shared<Tensor>(std::vector<size_t>{1}, x->requires_grad);
 
-    size_t n = numel(x->shape_);
-    float s = 0.0f;
-    for (size_t i = 0; i < n; ++i)
-        s += x->data()[i];
-    out->data()[0] = s;
+  size_t n = numel(x->shape_);
+  float s = 0.0f;
+  for (size_t i = 0; i < n; ++i)
+    s += x->data()[i];
+  out->data()[0] = s;
 
-    if (out->requires_grad) {
-        out->parents_ = {x};
-        out->backward_fn_ = [out, x, n]() {
-            // grad of sum w.r.t each element is 1
-            for (size_t i = 0; i < n; ++i)
-                x->grad->data()[i] += out->grad->data()[0];
-        };
-    }
+  if (out->requires_grad) {
+    out->parents_ = {x};
+    out->backward_fn_ = [out, x, n]() {
+      // grad of sum w.r.t each element is 1
+      for (size_t i = 0; i < n; ++i)
+        x->grad->data()[i] += out->grad->data()[0];
+    };
+  }
 
-    return out;
+  return out;
 }
 
+std::shared_ptr<Tensor> sub(const std::shared_ptr<Tensor> &a,
+                            const std::shared_ptr<Tensor> &b) {
+  if (a->shape_ != b->shape_)
+    throw std::runtime_error("Shape mismatch in sub");
 
-void Tensor::set_values(const std::vector<float>& values) {
-    size_t n = numel(shape_);
-    if (values.size() != n)
-        throw std::runtime_error("set_values: size mismatch");
-    std::copy(values.begin(), values.end(), data());
+  auto out =
+      std::make_shared<Tensor>(a->shape_, a->requires_grad || b->requires_grad);
+
+  size_t n = numel(a->shape_);
+  for (size_t i = 0; i < n; ++i)
+    out->data()[i] = a->data()[i] - b->data()[i];
+
+  if (out->requires_grad) {
+    out->parents_ = {a, b};
+
+    out->backward_fn_ = [out, a, b]() {
+      size_t n = numel(out->shape_);
+      for (size_t i = 0; i < n; ++i) {
+        if (a->requires_grad)
+          a->grad->data()[i] += out->grad->data()[i]; // d(a-b)/da = 1
+        if (b->requires_grad)
+          b->grad->data()[i] -= out->grad->data()[i]; // d(a-b)/db = -1
+      }
+    };
+  }
+
+  return out;
 }
 
-std::shared_ptr<Tensor> mean(const std::shared_ptr<Tensor>& x) {
-    auto s = sum(x);
-    s->data()[0] /= numel(x->shape_);
-    return s;
+std::shared_ptr<Tensor> div(const std::shared_ptr<Tensor> &a,
+                            const std::shared_ptr<Tensor> &b) {
+  if (a->shape_ != b->shape_)
+    throw std::runtime_error("Shape mismatch in div");
+
+  auto out =
+      std::make_shared<Tensor>(a->shape_, a->requires_grad || b->requires_grad);
+
+  size_t n = numel(a->shape_);
+  for (size_t i = 0; i < n; ++i)
+    out->data()[i] = a->data()[i] / b->data()[i];
+
+  if (out->requires_grad) {
+    out->parents_ = {a, b};
+
+    out->backward_fn_ = [out, a, b]() {
+      size_t n = numel(out->shape_);
+      for (size_t i = 0; i < n; ++i) {
+        if (a->requires_grad)
+          a->grad->data()[i] +=
+              out->grad->data()[i] / b->data()[i]; // d(a/b)/da = 1/b
+        if (b->requires_grad)
+          b->grad->data()[i] -=
+              out->grad->data()[i] * a->data()[i] /
+              (b->data()[i] * b->data()[i]); // d(a/b)/db = -a/b^2
+      }
+    };
+  }
+
+  return out;
+}
+
+void Tensor::set_values(const std::vector<float> &values) {
+  size_t n = numel(shape_);
+  if (values.size() != n)
+    throw std::runtime_error("set_values: size mismatch");
+  std::copy(values.begin(), values.end(), data());
+}
+
+std::shared_ptr<Tensor> mean(const std::shared_ptr<Tensor> &x) {
+  auto s = sum(x);
+  s->data()[0] /= numel(x->shape_);
+  return s;
 }
