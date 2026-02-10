@@ -45,10 +45,10 @@ public:
 
   friend std::shared_ptr<Tensor> matmul(const std::shared_ptr<Tensor> &x,
                                         const std::shared_ptr<Tensor> &b);
+  std::vector<size_t> shape_;
 
 private:
   StoragePtr storage_;
-  std::vector<size_t> shape_;
   std::vector<size_t> stride_;
   size_t offset_;
   std::vector<std::shared_ptr<Tensor>> parents_;

@@ -9,6 +9,11 @@ static size_t numel(const std::vector<size_t> &shape) {
                          std::multiplies<>());
 }
 
+static bool is_scalar(const std::shared_ptr<Tensor>& t) {
+  return numel(t->shape_) == 1;
+}
+
+
 Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
     : shape_(shape), offset_(0), requires_grad(requires_grad) {
 
@@ -115,62 +120,119 @@ void Tensor::backward(std::shared_ptr<Tensor> grad_output) {
 
 std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
                             const std::shared_ptr<Tensor> &b) {
-  if (a->shape_ != b->shape_)
-    throw std::runtime_error("Shape mismatch in add");
+  // Same shape
+  if (a->shape_ == b->shape_) {
+    auto out = std::make_shared<Tensor>(
+        a->shape_, a->requires_grad || b->requires_grad);
 
-  auto out =
-      std::make_shared<Tensor>(a->shape_, a->requires_grad || b->requires_grad);
+    size_t n = numel(a->shape_);
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = a->data()[i] * b->data()[i];
 
-  size_t n = numel(a->shape_);
-  for (size_t i = 0; i < n; ++i) {
-    out->data()[i] = a->data()[i] * b->data()[i];
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n]() {
+        for (size_t i = 0; i < n; ++i) {
+          if (a->requires_grad)
+            a->grad->data()[i] += b->data()[i] * out->grad->data()[i];
+          if (b->requires_grad)
+            b->grad->data()[i] += a->data()[i] * out->grad->data()[i];
+        }
+      };
+    }
+    return out;
   }
 
-  if (out->requires_grad) {
-    out->parents_ = {a, b}; // NOTE: allowed because mul is a friend
+  // Scalar + tensor
+  if (is_scalar(a)) {
+    auto out = std::make_shared<Tensor>(
+        b->shape_, a->requires_grad || b->requires_grad);
+    float av = a->data()[0];
+    size_t n = numel(b->shape_);
 
-    out->backward_fn_ = [out, a, b]() {
-      size_t n = numel(out->shape_);
-      for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = av * b->data()[i];
+
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n, av]() {
+        float grad_sum = 0.0f;
+        for (size_t i = 0; i < n; ++i) {
+          if (b->requires_grad)
+            b->grad->data()[i] += av * out->grad->data()[i];
+          grad_sum += b->data()[i] * out->grad->data()[i];
+        }
         if (a->requires_grad)
-          a->grad->data()[i] += b->data()[i] * out->grad->data()[i];
-        if (a->requires_grad)
-          b->grad->data()[i] += a->data()[i] * out->grad->data()[i];
-      }
-    };
+          a->grad->data()[0] += grad_sum;
+      };
+    }
+    return out;
   }
 
-  return out;
-};
+  if (is_scalar(b)) return mul(b, a);
+
+  throw std::runtime_error("Unsupported broadcast in mul");
+}
 
 std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
                             const std::shared_ptr<Tensor> &b) {
-  if (a->shape_ != b->shape_)
-    throw std::runtime_error("Shape mismatch in add");
 
-  auto out =
-      std::make_shared<Tensor>(a->shape_, a->requires_grad || b->requires_grad);
+  // Case 1: same shape → existing behavior
+  if (a->shape_ == b->shape_) {
+    auto out = std::make_shared<Tensor>(
+        a->shape_, a->requires_grad || b->requires_grad);
 
-  size_t n = numel(a->shape_);
-  for (size_t i = 0; i < n; ++i) {
-    out->data()[i] = a->data()[i] + b->data()[i];
+    size_t n = numel(a->shape_);
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = a->data()[i] + b->data()[i];
+
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n]() {
+        for (size_t i = 0; i < n; ++i) {
+          if (a->requires_grad)
+            a->grad->data()[i] += out->grad->data()[i];
+          if (b->requires_grad)
+            b->grad->data()[i] += out->grad->data()[i];
+        }
+      };
+    }
+    return out;
   }
 
-  if (out->requires_grad) {
-    out->parents_ = {a, b}; // NOTE: allowed because add is a friend
+  // Case 2: scalar + tensor
+  if (is_scalar(a)) {
+    auto out = std::make_shared<Tensor>(
+        b->shape_, a->requires_grad || b->requires_grad);
 
-    out->backward_fn_ = [out, a, b]() {
-      size_t n = numel(out->shape_);
-      for (size_t i = 0; i < n; ++i) {
+    size_t n = numel(b->shape_);
+    float av = a->data()[0];
+
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = av + b->data()[i];
+
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n]() {
+        float grad_sum = 0.0f;
+        for (size_t i = 0; i < n; ++i) {
+          if (b->requires_grad)
+            b->grad->data()[i] += out->grad->data()[i];
+          grad_sum += out->grad->data()[i];
+        }
         if (a->requires_grad)
-          a->grad->data()[i] += out->grad->data()[i];
-        if (a->requires_grad)
-          b->grad->data()[i] += out->grad->data()[i];
-      }
-    };
+          a->grad->data()[0] += grad_sum;
+      };
+    }
+    return out;
   }
 
-  return out;
+  // Case 3: tensor + scalar
+  if (is_scalar(b)) {
+    return add(b, a); // reuse logic
+  }
+
+  throw std::runtime_error("Unsupported broadcast in add");
 }
 
 std::shared_ptr<Tensor> sum(const std::shared_ptr<Tensor> &x) {
@@ -196,63 +258,159 @@ std::shared_ptr<Tensor> sum(const std::shared_ptr<Tensor> &x) {
 
 std::shared_ptr<Tensor> sub(const std::shared_ptr<Tensor> &a,
                             const std::shared_ptr<Tensor> &b) {
-  if (a->shape_ != b->shape_)
-    throw std::runtime_error("Shape mismatch in sub");
+  // Same shape
+  if (a->shape_ == b->shape_) {
+    auto out = std::make_shared<Tensor>(
+        a->shape_, a->requires_grad || b->requires_grad);
+    size_t n = numel(a->shape_);
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = a->data()[i] - b->data()[i];
 
-  auto out =
-      std::make_shared<Tensor>(a->shape_, a->requires_grad || b->requires_grad);
-
-  size_t n = numel(a->shape_);
-  for (size_t i = 0; i < n; ++i)
-    out->data()[i] = a->data()[i] - b->data()[i];
-
-  if (out->requires_grad) {
-    out->parents_ = {a, b};
-
-    out->backward_fn_ = [out, a, b]() {
-      size_t n = numel(out->shape_);
-      for (size_t i = 0; i < n; ++i) {
-        if (a->requires_grad)
-          a->grad->data()[i] += out->grad->data()[i]; // d(a-b)/da = 1
-        if (b->requires_grad)
-          b->grad->data()[i] -= out->grad->data()[i]; // d(a-b)/db = -1
-      }
-    };
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n]() {
+        for (size_t i = 0; i < n; ++i) {
+          if (a->requires_grad)
+            a->grad->data()[i] += out->grad->data()[i];
+          if (b->requires_grad)
+            b->grad->data()[i] -= out->grad->data()[i];
+        }
+      };
+    }
+    return out;
   }
 
-  return out;
+  // Scalar + tensor
+  if (is_scalar(a)) {
+    auto out = std::make_shared<Tensor>(
+        b->shape_, a->requires_grad || b->requires_grad);
+    float av = a->data()[0];
+    size_t n = numel(b->shape_);
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = av - b->data()[i];
+
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n]() {
+        float grad_sum = 0.0f;
+        for (size_t i = 0; i < n; ++i) {
+          if (b->requires_grad)
+            b->grad->data()[i] -= out->grad->data()[i];
+          grad_sum += out->grad->data()[i];
+        }
+        if (a->requires_grad)
+          a->grad->data()[0] += grad_sum;
+      };
+    }
+    return out;
+  }
+
+  if (is_scalar(b)) {
+    // a - scalar = -(scalar - a) ?
+    auto out = std::make_shared<Tensor>(
+        a->shape_, a->requires_grad || b->requires_grad);
+    float bv = b->data()[0];
+    size_t n = numel(a->shape_);
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = a->data()[i] - bv;
+
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n, bv]() {
+        float grad_sum = 0.0f;
+        for (size_t i = 0; i < n; ++i) {
+          if (a->requires_grad)
+            a->grad->data()[i] += out->grad->data()[i];
+          grad_sum -= out->grad->data()[i];
+        }
+        if (b->requires_grad)
+          b->grad->data()[0] += grad_sum;
+      };
+    }
+    return out;
+  }
+
+  throw std::runtime_error("Unsupported broadcast in sub");
 }
 
 std::shared_ptr<Tensor> div(const std::shared_ptr<Tensor> &a,
                             const std::shared_ptr<Tensor> &b) {
-  if (a->shape_ != b->shape_)
-    throw std::runtime_error("Shape mismatch in div");
+  // Same shape
+  if (a->shape_ == b->shape_) {
+    auto out = std::make_shared<Tensor>(
+        a->shape_, a->requires_grad || b->requires_grad);
+    size_t n = numel(a->shape_);
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = a->data()[i] / b->data()[i];
 
-  auto out =
-      std::make_shared<Tensor>(a->shape_, a->requires_grad || b->requires_grad);
-
-  size_t n = numel(a->shape_);
-  for (size_t i = 0; i < n; ++i)
-    out->data()[i] = a->data()[i] / b->data()[i];
-
-  if (out->requires_grad) {
-    out->parents_ = {a, b};
-
-    out->backward_fn_ = [out, a, b]() {
-      size_t n = numel(out->shape_);
-      for (size_t i = 0; i < n; ++i) {
-        if (a->requires_grad)
-          a->grad->data()[i] +=
-              out->grad->data()[i] / b->data()[i]; // d(a/b)/da = 1/b
-        if (b->requires_grad)
-          b->grad->data()[i] -=
-              out->grad->data()[i] * a->data()[i] /
-              (b->data()[i] * b->data()[i]); // d(a/b)/db = -a/b^2
-      }
-    };
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n]() {
+        for (size_t i = 0; i < n; ++i) {
+          if (a->requires_grad)
+            a->grad->data()[i] += out->grad->data()[i] / b->data()[i];
+          if (b->requires_grad)
+            b->grad->data()[i] -= out->grad->data()[i] * a->data()[i] /
+                                  (b->data()[i] * b->data()[i]);
+        }
+      };
+    }
+    return out;
   }
 
-  return out;
+  // Scalar + tensor
+  if (is_scalar(a)) {
+    auto out = std::make_shared<Tensor>(
+        b->shape_, a->requires_grad || b->requires_grad);
+    float av = a->data()[0];
+    size_t n = numel(b->shape_);
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = av / b->data()[i];
+
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n]() {
+        float grad_sum = 0.0f;
+        for (size_t i = 0; i < n; ++i) {
+          if (b->requires_grad)
+            b->grad->data()[i] -= out->grad->data()[i] * a->data()[0] /
+                                  (b->data()[i] * b->data()[i]);
+          grad_sum += out->grad->data()[i] / b->data()[i];
+        }
+        if (a->requires_grad)
+          a->grad->data()[0] += grad_sum;
+      };
+    }
+    return out;
+  }
+
+  if (is_scalar(b)) {
+    auto out = std::make_shared<Tensor>(
+        a->shape_, a->requires_grad || b->requires_grad);
+    float bv = b->data()[0];
+    size_t n = numel(a->shape_);
+    for (size_t i = 0; i < n; ++i)
+      out->data()[i] = a->data()[i] / bv;
+
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, n, bv]() {
+        for (size_t i = 0; i < n; ++i) {
+          if (a->requires_grad)
+            a->grad->data()[i] += out->grad->data()[i] / bv;
+        }
+        if (b->requires_grad) {
+          float grad_sum = 0.0f;
+          for (size_t i = 0; i < n; ++i)
+            grad_sum -= out->grad->data()[i] * a->data()[i] / (bv * bv);
+          b->grad->data()[0] += grad_sum;
+        }
+      };
+    }
+    return out;
+  }
+
+  throw std::runtime_error("Unsupported broadcast in div");
 }
 
 void Tensor::set_values(const std::vector<float> &values) {
