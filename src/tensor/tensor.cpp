@@ -16,6 +16,10 @@ Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
   storage_ = std::make_shared<Storage>(n);
   backward_fn_ = [] {};
 
+  if (requires_grad) {
+    grad = std::make_shared<Tensor>(shape, false);
+  }
+
   stride_.resize(shape.size()); // NOTE: .resize ensures stride has one element
                                 // per dimension
   size_t s = 1;
@@ -33,7 +37,11 @@ Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
 Tensor::Tensor(StoragePtr storage, std::vector<size_t> shape,
                std::vector<size_t> stride, size_t offset, bool requires_grad)
     : storage_(storage), shape_(shape), stride_(stride), offset_(offset),
-      requires_grad(requires_grad) {}
+      requires_grad(requires_grad) {
+  if (requires_grad) {
+    grad = std::make_shared<Tensor>(shape, false);
+  }
+}
 
 float *Tensor::data() { return storage_->data + offset_; }
 
@@ -124,9 +132,9 @@ std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
     out->backward_fn_ = [out, a, b]() {
       size_t n = numel(out->shape_);
       for (size_t i = 0; i < n; ++i) {
-        if (a->grad)
+        if (a->requires_grad)
           a->grad->data()[i] += b->data()[i] * out->grad->data()[i];
-        if (b->grad)
+        if (a->requires_grad)
           b->grad->data()[i] += a->data()[i] * out->grad->data()[i];
       }
     };
@@ -154,9 +162,9 @@ std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
     out->backward_fn_ = [out, a, b]() {
       size_t n = numel(out->shape_);
       for (size_t i = 0; i < n; ++i) {
-        if (a->grad)
+        if (a->requires_grad)
           a->grad->data()[i] += out->grad->data()[i];
-        if (b->grad)
+        if (a->requires_grad)
           b->grad->data()[i] += out->grad->data()[i];
       }
     };
