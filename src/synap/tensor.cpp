@@ -232,6 +232,85 @@ std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
     return add(b, a); // reuse logic
   }
 
+  // Case 4: row broadcast  [M,N] + [N]
+  if (a->shape_.size() == 2 &&
+      b->shape_.size() == 1 &&
+      a->shape_[1] == b->shape_[0]) {
+
+    size_t M = a->shape_[0];
+    size_t N = a->shape_[1];
+
+    auto out = std::make_shared<Tensor>(
+        a->shape_, a->requires_grad || b->requires_grad);
+
+    // Forward
+    for (size_t i = 0; i < M; ++i)
+      for (size_t j = 0; j < N; ++j)
+        out->data()[i*N + j] =
+            a->data()[i*N + j] + b->data()[j];
+
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, M, N]() {
+
+        for (size_t i = 0; i < M; ++i) {
+          for (size_t j = 0; j < N; ++j) {
+
+            float g = out->grad->data()[i*N + j];
+
+            if (a->requires_grad)
+              a->grad->data()[i*N + j] += g;
+
+            if (b->requires_grad)
+              b->grad->data()[j] += g;   // reduce over rows
+          }
+        }
+      };
+    }
+
+    return out;
+  }
+
+  // Case 5: column broadcast  [M,N] + [M,1]
+  if (a->shape_.size() == 2 &&
+      b->shape_.size() == 2 &&
+      b->shape_[0] == a->shape_[0] &&
+      b->shape_[1] == 1) {
+
+    size_t M = a->shape_[0];
+    size_t N = a->shape_[1];
+
+    auto out = std::make_shared<Tensor>(
+        a->shape_, a->requires_grad || b->requires_grad);
+
+    // Forward
+    for (size_t i = 0; i < M; ++i)
+      for (size_t j = 0; j < N; ++j)
+        out->data()[i*N + j] =
+            a->data()[i*N + j] + b->data()[i];
+
+    if (out->requires_grad) {
+      out->parents_ = {a, b};
+      out->backward_fn_ = [out, a, b, M, N]() {
+
+        for (size_t i = 0; i < M; ++i) {
+          for (size_t j = 0; j < N; ++j) {
+
+            float g = out->grad->data()[i*N + j];
+
+            if (a->requires_grad)
+              a->grad->data()[i*N + j] += g;
+
+            if (b->requires_grad)
+              b->grad->data()[i] += g;  // reduce over columns
+          }
+        }
+      };
+    }
+
+    return out;
+  }
+
   throw std::runtime_error("Unsupported broadcast in add");
 }
 
