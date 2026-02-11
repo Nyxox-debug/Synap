@@ -499,10 +499,22 @@ void Tensor::set_values(const std::vector<float> &values) {
   std::copy(values.begin(), values.end(), data());
 }
 
+// std::shared_ptr<Tensor> mean(const std::shared_ptr<Tensor> &x) {
+//   auto s = sum(x);
+//   s->data()[0] /= numel(x->shape_);
+//   return s;
+// }
+
 std::shared_ptr<Tensor> mean(const std::shared_ptr<Tensor> &x) {
   auto s = sum(x);
-  s->data()[0] /= numel(x->shape_);
-  return s;
+
+  float inv_n = 1.0f / numel(x->shape_);
+  auto scale = std::make_shared<Tensor>(
+      std::vector<size_t>{1}, false);
+
+  scale->data()[0] = inv_n;
+
+  return mul(s, scale);
 }
 
 std::shared_ptr<Tensor> transpose(const std::shared_ptr<Tensor> &x) {
