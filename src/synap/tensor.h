@@ -45,6 +45,11 @@ public:
 
   friend std::shared_ptr<Tensor> matmul(const std::shared_ptr<Tensor> &x,
                                         const std::shared_ptr<Tensor> &b);
+
+  friend std::shared_ptr<Tensor> relu(const std::shared_ptr<Tensor> &x);
+  friend std::shared_ptr<Tensor> sigmoid(const std::shared_ptr<Tensor> &x);
+  friend std::shared_ptr<Tensor> tanh(const std::shared_ptr<Tensor> &x);
+
   std::vector<size_t> shape_;
 
 private:

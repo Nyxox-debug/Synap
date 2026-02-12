@@ -291,6 +291,65 @@ class Tensor:
         """
         ...
 
+    @staticmethod
+    def relu(a: "Tensor") -> "Tensor":
+        """
+        Apply the ReLU (Rectified Linear Unit) activation element-wise.
+
+        Forward pass: output = max(0, input)
+        Backward pass: gradient is propagated only for positive input elements.
+
+        Parameters
+        ----------
+        a : Tensor
+            Input tensor.
+
+        Returns
+        -------
+        Tensor
+            Tensor with ReLU applied element-wise.
+        """
+        ...
+
+    @staticmethod
+    def sigmoid(a: "Tensor") -> "Tensor":
+        """
+        Apply the Sigmoid activation element-wise.
+
+        Forward pass: output = 1 / (1 + exp(-input))
+        Backward pass: gradient = output * (1 - output)
+
+        Parameters
+        ----------
+        a : Tensor
+            Input tensor.
+
+        Returns
+        -------
+        Tensor
+            Tensor with Sigmoid applied element-wise.
+        """
+        ...
+
+    @staticmethod
+    def tanh(a: "Tensor") -> "Tensor":
+        """
+        Apply the Tanh activation element-wise.
+
+        Forward pass: output = tanh(input)
+        Backward pass: gradient = 1 - output^2
+
+        Parameters
+        ----------
+        a : Tensor
+            Input tensor.
+
+        Returns
+        -------
+        Tensor
+            Tensor with Tanh applied element-wise.
+        """
+        ...
 def tensor_data(t: Tensor) -> list[float]:
     """
     Return the tensor values as a Python list.

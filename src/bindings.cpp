@@ -48,6 +48,12 @@ PYBIND11_MODULE(synap, m) {
                      const std::shared_ptr<Tensor> &b) { return div(a, b); })
       .def_static("mean",
                   [](const std::shared_ptr<Tensor> &a) { return mean(a); })
+      .def_static("sigmoid",
+                  [](const std::shared_ptr<Tensor> &a) { return sigmoid(a); })
+      .def_static("tanh",
+                  [](const std::shared_ptr<Tensor> &a) { return tanh(a); })
+      .def_static("relu",
+                  [](const std::shared_ptr<Tensor> &a) { return relu(a); })
 
       // Linear Algebra Ops
       .def_static("transpose",

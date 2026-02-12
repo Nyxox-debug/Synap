@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include <cmath>
 #include <memory>
 #include <numeric>
 #include <stdexcept>
@@ -9,10 +10,9 @@ static size_t numel(const std::vector<size_t> &shape) {
                          std::multiplies<>());
 }
 
-static bool is_scalar(const std::shared_ptr<Tensor>& t) {
+static bool is_scalar(const std::shared_ptr<Tensor> &t) {
   return numel(t->shape_) == 1;
 }
-
 
 Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
     : shape_(shape), offset_(0), requires_grad(requires_grad) {
@@ -122,8 +122,8 @@ std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
                             const std::shared_ptr<Tensor> &b) {
   // Same shape
   if (a->shape_ == b->shape_) {
-    auto out = std::make_shared<Tensor>(
-        a->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(a->shape_,
+                                        a->requires_grad || b->requires_grad);
 
     size_t n = numel(a->shape_);
     for (size_t i = 0; i < n; ++i)
@@ -145,8 +145,8 @@ std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
 
   // Scalar + tensor
   if (is_scalar(a)) {
-    auto out = std::make_shared<Tensor>(
-        b->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(b->shape_,
+                                        a->requires_grad || b->requires_grad);
     float av = a->data()[0];
     size_t n = numel(b->shape_);
 
@@ -169,7 +169,8 @@ std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
     return out;
   }
 
-  if (is_scalar(b)) return mul(b, a);
+  if (is_scalar(b))
+    return mul(b, a);
 
   throw std::runtime_error("Unsupported broadcast in mul");
 }
@@ -179,8 +180,8 @@ std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
 
   // Case 1: same shape → existing behavior
   if (a->shape_ == b->shape_) {
-    auto out = std::make_shared<Tensor>(
-        a->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(a->shape_,
+                                        a->requires_grad || b->requires_grad);
 
     size_t n = numel(a->shape_);
     for (size_t i = 0; i < n; ++i)
@@ -202,8 +203,8 @@ std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
 
   // Case 2: scalar + tensor
   if (is_scalar(a)) {
-    auto out = std::make_shared<Tensor>(
-        b->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(b->shape_,
+                                        a->requires_grad || b->requires_grad);
 
     size_t n = numel(b->shape_);
     float av = a->data()[0];
@@ -233,36 +234,33 @@ std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
   }
 
   // Case 4: row broadcast  [M,N] + [N]
-  if (a->shape_.size() == 2 &&
-      b->shape_.size() == 1 &&
+  if (a->shape_.size() == 2 && b->shape_.size() == 1 &&
       a->shape_[1] == b->shape_[0]) {
 
     size_t M = a->shape_[0];
     size_t N = a->shape_[1];
 
-    auto out = std::make_shared<Tensor>(
-        a->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(a->shape_,
+                                        a->requires_grad || b->requires_grad);
 
     // Forward
     for (size_t i = 0; i < M; ++i)
       for (size_t j = 0; j < N; ++j)
-        out->data()[i*N + j] =
-            a->data()[i*N + j] + b->data()[j];
+        out->data()[i * N + j] = a->data()[i * N + j] + b->data()[j];
 
     if (out->requires_grad) {
       out->parents_ = {a, b};
       out->backward_fn_ = [out, a, b, M, N]() {
-
         for (size_t i = 0; i < M; ++i) {
           for (size_t j = 0; j < N; ++j) {
 
-            float g = out->grad->data()[i*N + j];
+            float g = out->grad->data()[i * N + j];
 
             if (a->requires_grad)
-              a->grad->data()[i*N + j] += g;
+              a->grad->data()[i * N + j] += g;
 
             if (b->requires_grad)
-              b->grad->data()[j] += g;   // reduce over rows
+              b->grad->data()[j] += g; // reduce over rows
           }
         }
       };
@@ -272,37 +270,33 @@ std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
   }
 
   // Case 5: column broadcast  [M,N] + [M,1]
-  if (a->shape_.size() == 2 &&
-      b->shape_.size() == 2 &&
-      b->shape_[0] == a->shape_[0] &&
-      b->shape_[1] == 1) {
+  if (a->shape_.size() == 2 && b->shape_.size() == 2 &&
+      b->shape_[0] == a->shape_[0] && b->shape_[1] == 1) {
 
     size_t M = a->shape_[0];
     size_t N = a->shape_[1];
 
-    auto out = std::make_shared<Tensor>(
-        a->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(a->shape_,
+                                        a->requires_grad || b->requires_grad);
 
     // Forward
     for (size_t i = 0; i < M; ++i)
       for (size_t j = 0; j < N; ++j)
-        out->data()[i*N + j] =
-            a->data()[i*N + j] + b->data()[i];
+        out->data()[i * N + j] = a->data()[i * N + j] + b->data()[i];
 
     if (out->requires_grad) {
       out->parents_ = {a, b};
       out->backward_fn_ = [out, a, b, M, N]() {
-
         for (size_t i = 0; i < M; ++i) {
           for (size_t j = 0; j < N; ++j) {
 
-            float g = out->grad->data()[i*N + j];
+            float g = out->grad->data()[i * N + j];
 
             if (a->requires_grad)
-              a->grad->data()[i*N + j] += g;
+              a->grad->data()[i * N + j] += g;
 
             if (b->requires_grad)
-              b->grad->data()[i] += g;  // reduce over columns
+              b->grad->data()[i] += g; // reduce over columns
           }
         }
       };
@@ -339,8 +333,8 @@ std::shared_ptr<Tensor> sub(const std::shared_ptr<Tensor> &a,
                             const std::shared_ptr<Tensor> &b) {
   // Same shape
   if (a->shape_ == b->shape_) {
-    auto out = std::make_shared<Tensor>(
-        a->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(a->shape_,
+                                        a->requires_grad || b->requires_grad);
     size_t n = numel(a->shape_);
     for (size_t i = 0; i < n; ++i)
       out->data()[i] = a->data()[i] - b->data()[i];
@@ -361,8 +355,8 @@ std::shared_ptr<Tensor> sub(const std::shared_ptr<Tensor> &a,
 
   // Scalar + tensor
   if (is_scalar(a)) {
-    auto out = std::make_shared<Tensor>(
-        b->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(b->shape_,
+                                        a->requires_grad || b->requires_grad);
     float av = a->data()[0];
     size_t n = numel(b->shape_);
     for (size_t i = 0; i < n; ++i)
@@ -386,8 +380,8 @@ std::shared_ptr<Tensor> sub(const std::shared_ptr<Tensor> &a,
 
   if (is_scalar(b)) {
     // a - scalar = -(scalar - a) ?
-    auto out = std::make_shared<Tensor>(
-        a->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(a->shape_,
+                                        a->requires_grad || b->requires_grad);
     float bv = b->data()[0];
     size_t n = numel(a->shape_);
     for (size_t i = 0; i < n; ++i)
@@ -416,8 +410,8 @@ std::shared_ptr<Tensor> div(const std::shared_ptr<Tensor> &a,
                             const std::shared_ptr<Tensor> &b) {
   // Same shape
   if (a->shape_ == b->shape_) {
-    auto out = std::make_shared<Tensor>(
-        a->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(a->shape_,
+                                        a->requires_grad || b->requires_grad);
     size_t n = numel(a->shape_);
     for (size_t i = 0; i < n; ++i)
       out->data()[i] = a->data()[i] / b->data()[i];
@@ -439,8 +433,8 @@ std::shared_ptr<Tensor> div(const std::shared_ptr<Tensor> &a,
 
   // Scalar + tensor
   if (is_scalar(a)) {
-    auto out = std::make_shared<Tensor>(
-        b->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(b->shape_,
+                                        a->requires_grad || b->requires_grad);
     float av = a->data()[0];
     size_t n = numel(b->shape_);
     for (size_t i = 0; i < n; ++i)
@@ -464,8 +458,8 @@ std::shared_ptr<Tensor> div(const std::shared_ptr<Tensor> &a,
   }
 
   if (is_scalar(b)) {
-    auto out = std::make_shared<Tensor>(
-        a->shape_, a->requires_grad || b->requires_grad);
+    auto out = std::make_shared<Tensor>(a->shape_,
+                                        a->requires_grad || b->requires_grad);
     float bv = b->data()[0];
     size_t n = numel(a->shape_);
     for (size_t i = 0; i < n; ++i)
@@ -509,8 +503,7 @@ std::shared_ptr<Tensor> mean(const std::shared_ptr<Tensor> &x) {
   auto s = sum(x);
 
   float inv_n = 1.0f / numel(x->shape_);
-  auto scale = std::make_shared<Tensor>(
-      std::vector<size_t>{1}, false);
+  auto scale = std::make_shared<Tensor>(std::vector<size_t>{1}, false);
 
   scale->data()[0] = inv_n;
 
@@ -584,6 +577,66 @@ std::shared_ptr<Tensor> matmul(const std::shared_ptr<Tensor> &a,
             for (size_t m = 0; m < M; ++m)
               b->grad->data()[i * N + j] +=
                   a->data()[m * K + i] * out->grad->data()[m * N + j];
+    };
+  }
+
+  return out;
+}
+
+std::shared_ptr<Tensor> relu(const std::shared_ptr<Tensor> &x) {
+  auto out = std::make_shared<Tensor>(x->shape_, x->requires_grad);
+  size_t n = numel(x->shape_);
+
+  for (size_t i = 0; i < n; ++i)
+    out->data()[i] = std::max(0.0f, x->data()[i]);
+
+  if (out->requires_grad) {
+    out->parents_ = {x};
+    out->backward_fn_ = [out, x, n]() {
+      for (size_t i = 0; i < n; ++i)
+        if (x->requires_grad)
+          x->grad->data()[i] +=
+              (x->data()[i] > 0 ? 1.0f : 0.0f) * out->grad->data()[i];
+    };
+  }
+
+  return out;
+}
+
+std::shared_ptr<Tensor> sigmoid(const std::shared_ptr<Tensor> &x) {
+  auto out = std::make_shared<Tensor>(x->shape_, x->requires_grad);
+  size_t n = numel(x->shape_);
+
+  for (size_t i = 0; i < n; ++i)
+    out->data()[i] = 1.0f / (1.0f + std::exp(-x->data()[i]));
+
+  if (out->requires_grad) {
+    out->parents_ = {x};
+    out->backward_fn_ = [out, x, n]() {
+      for (size_t i = 0; i < n; ++i)
+        if (x->requires_grad)
+          x->grad->data()[i] +=
+              out->data()[i] * (1.0f - out->data()[i]) * out->grad->data()[i];
+    };
+  }
+
+  return out;
+}
+
+std::shared_ptr<Tensor> tanh(const std::shared_ptr<Tensor> &x) {
+  auto out = std::make_shared<Tensor>(x->shape_, x->requires_grad);
+  size_t n = numel(x->shape_);
+
+  for (size_t i = 0; i < n; ++i)
+    out->data()[i] = std::tanh(x->data()[i]);
+
+  if (out->requires_grad) {
+    out->parents_ = {x};
+    out->backward_fn_ = [out, x, n]() {
+      for (size_t i = 0; i < n; ++i)
+        if (x->requires_grad)
+          x->grad->data()[i] +=
+              (1.0f - out->data()[i] * out->data()[i]) * out->grad->data()[i];
     };
   }
 
