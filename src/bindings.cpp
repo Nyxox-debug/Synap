@@ -59,6 +59,7 @@ PYBIND11_MODULE(synap, m) {
                      const std::shared_ptr<Tensor> &target) {
                     return mse(pred, target);
                   })
+      .def("backward", [](Tensor &self) { self.backward(nullptr); })
       .def_static("softmax_cross_entropy",
                   [](const std::shared_ptr<Tensor> &logits,
                      const std::shared_ptr<Tensor> &targets) {

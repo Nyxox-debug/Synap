@@ -400,6 +400,14 @@ class Tensor:
             Scalar tensor containing the mean cross-entropy loss over the batch.
         """
         ...
+
+    @staticmethod
+    def exp(a: "Tensor") -> "Tensor":
+        """
+        Perform element-wise exp
+        """
+        ...
+
 def tensor_data(t: Tensor) -> list[float]:
     """
     Return the tensor values as a Python list.

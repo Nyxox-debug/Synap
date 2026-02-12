@@ -701,3 +701,19 @@ std::shared_ptr<Tensor> softmax_cross_entropy(const std::shared_ptr<Tensor>& log
 
     return out;
 }
+
+std::shared_ptr<Tensor> exp(const std::shared_ptr<Tensor> &x) {
+    auto out = std::make_shared<Tensor>(x->shape_, x->requires_grad);
+    size_t n = numel(x->shape_);
+    for (size_t i = 0; i < n; ++i)
+        out->data()[i] = std::exp(x->data()[i]);
+
+    if (out->requires_grad) {
+        out->parents_ = {x};
+        out->backward_fn_ = [out, x, n]() {
+            for (size_t i = 0; i < n; ++i)
+                x->grad->data()[i] += out->data()[i] * out->grad->data()[i];
+        };
+    }
+    return out;
+}
