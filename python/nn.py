@@ -1,86 +1,70 @@
-import synap
 import random
-
+import synap
 
 class Module:
-    def parameters(self):
-        return []
-
     def zero_grad(self):
         for p in self.parameters():
             p.zero_grad()
 
+    def parameters(self):
+        return []
 
-class Linear(Module):
-    def __init__(self, in_features, out_features):
-        # Xavier-style uniform init (simple version)
-        limit = (1.0 / in_features) ** 0.5
+class Neuron(Module):
+    def __init__(self, nin, nonlin=True):
+        # Weight tensor: shape [nin, 1], requires_grad=True
+        self.w = synap.Tensor([nin, 1], requires_grad=True)
+        self.w.set_values([random.uniform(-1,1) for _ in range(nin)])
+        # Bias tensor: shape [1], requires_grad=True
+        self.b = synap.Tensor([1], requires_grad=True)
+        self.b.set_values([0])
+        self.nonlin = nonlin
 
-        self.W = synap.Tensor([in_features, out_features], requires_grad=True)
-        self.b = synap.Tensor([out_features], requires_grad=True)
+    def __call__(self, x: synap.Tensor):
+        # x: Tensor of shape [nin]
+        if len(x.shape()) == 1:
+            x = x.view([x.shape()[0], 1])  # ensure column vector
+        z = synap.Tensor.add(synap.Tensor.matmul(x, self.w), self.b)
+        if self.nonlin:
+            z = synap.Tensor.relu(z)
+        return z
 
-        w_vals = [random.uniform(-limit, limit) for _ in range(in_features * out_features)]
-        b_vals = [0.0 for _ in range(out_features)]
+        def parameters(self):
+            return [self.w, self.b]
 
-        self.W.set_values(w_vals)
-        self.b.set_values(b_vals)
+        def __repr__(self):
+            return f"{'ReLU' if self.nonlin else 'Linear'}Neuron({self.w.shape()[0]})"
 
-    def __call__(self, x):
-        out = synap.Tensor.matmul(x, self.W)
-        out = synap.Tensor.add(out, self.b)
+class Layer(Module):
+    def __init__(self, nin, nout, **kwargs):
+        self.neurons = [Neuron(nin, **kwargs) for _ in range(nout)]
+
+    def __call__(self, x: synap.Tensor):
+        outputs = [n(x) for n in self.neurons]
+        if len(outputs) == 1:
+            return outputs[0]
+        # concatenate outputs along last axis
+        out_values = []
+        for o in outputs:
+            out_values.extend(synap.tensor_data(o))
+        out = synap.Tensor([len(out_values)], requires_grad=True)
+        out.set_values(out_values)
         return out
 
     def parameters(self):
-        return [self.W, self.b]
+        return [p for n in self.neurons for p in n.parameters()]
 
     def __repr__(self):
-        return f"Linear({self.W.shape()[0]}, {self.W.shape()[1]})"
-
-
-class ReLU(Module):
-    def __call__(self, x):
-        return synap.Tensor.relu(x)
-
-
-class Sigmoid(Module):
-    def __call__(self, x):
-        return synap.Tensor.sigmoid(x)
-
-
-class Tanh(Module):
-    def __call__(self, x):
-        return synap.Tensor.tanh(x)
-
-
-class Sequential(Module):
-    def __init__(self, *layers):
-        self.layers = layers
-
-    def __call__(self, x):
-        for layer in self.layers:
-            x = layer(x)
-        return x
-
-    def parameters(self):
-        return [p for layer in self.layers for p in layer.parameters()]
-
+        return f"Layer of [{', '.join(str(n) for n in self.neurons)}]"
 
 class MLP(Module):
-    def __init__(self, sizes, activation="relu"):
-        self.layers = []
+    def __init__(self, nin, nouts):
+        sz = [nin] + nouts
+        self.layers = [
+            Layer(sz[i], sz[i+1], nonlin=(i != len(nouts)-1))
+            for i in range(len(nouts))
+        ]
 
-        for i in range(len(sizes) - 1):
-            self.layers.append(Linear(sizes[i], sizes[i + 1]))
-
-            if i != len(sizes) - 2:
-                if activation == "relu":
-                    self.layers.append(ReLU())
-                elif activation == "sigmoid":
-                    self.layers.append(Sigmoid())
-                elif activation == "tanh":
-                    self.layers.append(Tanh())
-
-    def __call__(self, x):
+    def __call__(self, x: synap.Tensor):
         for layer in self.layers:
             x = layer(x)
         return x
@@ -89,30 +73,4 @@ class MLP(Module):
         return [p for layer in self.layers for p in layer.parameters()]
 
     def __repr__(self):
-        return f"MLP({self.layers})"
-
-
-# Simple SGD optimizer
-class SGD:
-    def __init__(self, parameters, lr=0.01):
-        self.parameters = list(parameters)
-        self.lr = lr
-
-    def step(self):
-        for p in self.parameters:
-            if p.grad is None:
-                continue
-
-            grad_vals = p.grad_values
-            data_vals = synap.tensor_data(p)
-
-            updated = [
-                d - self.lr * g
-                for d, g in zip(data_vals, grad_vals)
-            ]
-
-            p.set_values(updated)
-
-    def zero_grad(self):
-        for p in self.parameters:
-            p.zero_grad()
+        return f"MLP of [{', '.join(str(layer) for layer in self.layers)}]"
