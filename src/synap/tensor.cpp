@@ -642,3 +642,62 @@ std::shared_ptr<Tensor> tanh(const std::shared_ptr<Tensor> &x) {
 
   return out;
 }
+
+
+std::shared_ptr<Tensor> mse(const std::shared_ptr<Tensor>& pred,
+                            const std::shared_ptr<Tensor>& target) {
+    auto diff = sub(pred, target);
+    auto sq = mul(diff, diff);
+    return mean(sq);
+}
+
+std::shared_ptr<Tensor> softmax_cross_entropy(const std::shared_ptr<Tensor>& logits,
+                                              const std::shared_ptr<Tensor>& targets) {
+    size_t batch = logits->shape()[0];
+    size_t classes = logits->shape()[1];
+
+    // Forward (same as your code)
+    std::vector<float> max_vals(batch, -1e9);
+    for (size_t i = 0; i < batch; ++i)
+        for (size_t j = 0; j < classes; ++j)
+            if (logits->data()[i * classes + j] > max_vals[i])
+                max_vals[i] = logits->data()[i * classes + j];
+
+    auto logits_shifted = std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
+    size_t n = batch * classes;
+    for (size_t i = 0; i < batch; ++i)
+        for (size_t j = 0; j < classes; ++j)
+            logits_shifted->data()[i * classes + j] = logits->data()[i * classes + j] - max_vals[i];
+
+    auto exp_logits = std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
+    for (size_t i = 0; i < n; ++i)
+        exp_logits->data()[i] = std::exp(logits_shifted->data()[i]);
+
+    std::vector<float> row_sums(batch, 0.0f);
+    for (size_t i = 0; i < batch; ++i)
+        for (size_t j = 0; j < classes; ++j)
+            row_sums[i] += exp_logits->data()[i * classes + j];
+
+    auto probs = std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
+    for (size_t i = 0; i < batch; ++i)
+        for (size_t j = 0; j < classes; ++j)
+            probs->data()[i * classes + j] = exp_logits->data()[i * classes + j] / row_sums[i];
+
+    auto mul_targets = std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
+    for (size_t i = 0; i < n; ++i)
+        mul_targets->data()[i] = -targets->data()[i] * std::log(probs->data()[i]);
+
+    auto out = mean(mul_targets);
+
+    // Backward hook
+    if (out->requires_grad) {
+        out->parents_ = {logits};
+        out->backward_fn_ = [logits, probs, targets, n]() {
+            for (size_t i = 0; i < n; ++i)
+                if (logits->requires_grad)
+                    logits->grad->data()[i] += (probs->data()[i] - targets->data()[i]) / n;
+        };
+    }
+
+    return out;
+}

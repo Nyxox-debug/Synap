@@ -350,6 +350,56 @@ class Tensor:
             Tensor with Tanh applied element-wise.
         """
         ...
+
+    @staticmethod
+    def mse(pred: "Tensor", target: "Tensor") -> "Tensor":
+        """
+        Compute the Mean Squared Error (MSE) between predictions and targets.
+
+        Forward pass: MSE = mean((pred - target)^2)
+        Backward pass: dL/dpred = 2*(pred - target)/n
+
+        Parameters
+        ----------
+        pred : Tensor
+            Predicted values.
+        target : Tensor
+            Ground-truth values.
+
+        Returns
+        -------
+        Tensor
+            Scalar tensor containing the mean squared error.
+        """
+        ...
+
+    @staticmethod
+    def softmax_cross_entropy(logits: "Tensor", targets: "Tensor") -> "Tensor":
+        """
+        Compute the Softmax Cross-Entropy loss.
+
+        Forward pass:
+            1. Shift logits for numerical stability: logits_shifted = logits - max(logits, axis=1)
+            2. Compute softmax probabilities: probs = exp(logits_shifted) / sum(exp(logits_shifted), axis=1)
+            3. Compute cross-entropy per row: -sum(targets * log(probs), axis=1)
+            4. Take mean over batch
+
+        Backward pass:
+            Gradient w.r.t logits: (probs - targets) / batch_size
+
+        Parameters
+        ----------
+        logits : Tensor
+            Raw prediction scores (pre-softmax).
+        targets : Tensor
+            One-hot encoded target labels.
+
+        Returns
+        -------
+        Tensor
+            Scalar tensor containing the mean cross-entropy loss over the batch.
+        """
+        ...
 def tensor_data(t: Tensor) -> list[float]:
     """
     Return the tensor values as a Python list.

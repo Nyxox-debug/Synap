@@ -50,6 +50,13 @@ public:
   friend std::shared_ptr<Tensor> sigmoid(const std::shared_ptr<Tensor> &x);
   friend std::shared_ptr<Tensor> tanh(const std::shared_ptr<Tensor> &x);
 
+  friend std::shared_ptr<Tensor> mse(const std::shared_ptr<Tensor> &pred,
+                              const std::shared_ptr<Tensor> &target);
+
+  friend std::shared_ptr<Tensor>
+  softmax_cross_entropy(const std::shared_ptr<Tensor> &logits,
+                        const std::shared_ptr<Tensor> &targets);
+
   std::vector<size_t> shape_;
 
 private:

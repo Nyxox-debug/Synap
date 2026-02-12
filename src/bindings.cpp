@@ -54,6 +54,16 @@ PYBIND11_MODULE(synap, m) {
                   [](const std::shared_ptr<Tensor> &a) { return tanh(a); })
       .def_static("relu",
                   [](const std::shared_ptr<Tensor> &a) { return relu(a); })
+      .def_static("mse",
+                  [](const std::shared_ptr<Tensor> &pred,
+                     const std::shared_ptr<Tensor> &target) {
+                    return mse(pred, target);
+                  })
+      .def_static("softmax_cross_entropy",
+                  [](const std::shared_ptr<Tensor> &logits,
+                     const std::shared_ptr<Tensor> &targets) {
+                    return softmax_cross_entropy(logits, targets);
+                  })
 
       // Linear Algebra Ops
       .def_static("transpose",
