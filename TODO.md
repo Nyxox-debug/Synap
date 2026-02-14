@@ -1,6 +1,3 @@
-Auto stub gen
+<!-- TODO: Auto Stub Gen -->
 
-<!--FIX: use mean and not sum better accuracy -->
-x = [1, 2, 3, 4]
-sum(x)   → backward gradient w.r.t each element = 1
-mean(x)  → backward gradient w.r.t each element = 1/4
+<!-- TODO: Extend matmul to more than 2D Vectors -->
