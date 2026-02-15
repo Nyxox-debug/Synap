@@ -43,6 +43,7 @@ Tensor::Tensor(StoragePtr storage, std::vector<size_t> shape,
                std::vector<size_t> stride, size_t offset, bool requires_grad)
     : storage_(storage), shape_(shape), stride_(stride), offset_(offset),
       requires_grad(requires_grad) {
+  backward_fn_ = [] {};
   if (requires_grad) {
     grad = std::make_shared<Tensor>(shape, false);
   }
@@ -54,18 +55,45 @@ const float *Tensor::data() const { return storage_->data + offset_; }
 
 const std::vector<size_t> &Tensor::shape() const { return shape_; }
 
-Tensor Tensor::clone() const {
-  Tensor out(shape_, requires_grad);
-  size_t n = numel(shape_);
-  std::copy(data(), data() + n, out.data());
-  return out;
+// Tensor Tensor::clone() const {
+//   Tensor out(shape_, requires_grad);
+//   size_t n = numel(shape_);
+//   std::copy(data(), data() + n, out.data());
+//   return out;
+// }
+
+// Tensor Tensor::view(std::vector<size_t> new_shape) const {
+//   if (numel(new_shape) != numel(shape_))
+//     throw std::runtime_error("View must preserve number of elements");
+//
+//   return Tensor(storage_, new_shape, stride_, offset_, requires_grad);
+// }
+
+std::shared_ptr<Tensor> Tensor::clone() const {
+    auto out = std::make_shared<Tensor>(shape_, requires_grad);
+    size_t n = numel(shape_);
+    std::copy(data(), data() + n, out->data());
+    return out;
 }
 
-Tensor Tensor::view(std::vector<size_t> new_shape) const {
-  if (numel(new_shape) != numel(shape_))
-    throw std::runtime_error("View must preserve number of elements");
+std::shared_ptr<Tensor> Tensor::view(const std::vector<size_t>& new_shape) const {
+    if (numel(new_shape) != numel(shape_))
+        throw std::runtime_error("View must preserve number of elements");
 
-  return Tensor(storage_, new_shape, stride_, offset_, requires_grad);
+    std::vector<size_t> new_stride(new_shape.size());
+    size_t stride = 1;
+    for (int i = new_shape.size() - 1; i >= 0; --i) {
+        new_stride[i] = stride;
+        stride *= new_shape[i];
+    }
+
+    return std::make_shared<Tensor>(
+        storage_,
+        new_shape,
+        new_stride,
+        offset_,
+        requires_grad
+    );
 }
 
 void Tensor::zero_grad() {
@@ -643,77 +671,85 @@ std::shared_ptr<Tensor> tanh(const std::shared_ptr<Tensor> &x) {
   return out;
 }
 
-
-std::shared_ptr<Tensor> mse(const std::shared_ptr<Tensor>& pred,
-                            const std::shared_ptr<Tensor>& target) {
-    auto diff = sub(pred, target);
-    auto sq = mul(diff, diff);
-    return mean(sq);
+std::shared_ptr<Tensor> mse(const std::shared_ptr<Tensor> &pred,
+                            const std::shared_ptr<Tensor> &target) {
+  auto diff = sub(pred, target);
+  auto sq = mul(diff, diff);
+  return mean(sq);
 }
 
-std::shared_ptr<Tensor> softmax_cross_entropy(const std::shared_ptr<Tensor>& logits,
-                                              const std::shared_ptr<Tensor>& targets) {
-    size_t batch = logits->shape()[0];
-    size_t classes = logits->shape()[1];
+std::shared_ptr<Tensor>
+softmax_cross_entropy(const std::shared_ptr<Tensor> &logits,
+                      const std::shared_ptr<Tensor> &targets) {
+  size_t batch = logits->shape()[0];
+  size_t classes = logits->shape()[1];
 
-    // Forward (same as your code)
-    std::vector<float> max_vals(batch, -1e9);
-    for (size_t i = 0; i < batch; ++i)
-        for (size_t j = 0; j < classes; ++j)
-            if (logits->data()[i * classes + j] > max_vals[i])
-                max_vals[i] = logits->data()[i * classes + j];
+  // Forward (same as your code)
+  std::vector<float> max_vals(batch, -1e9);
+  for (size_t i = 0; i < batch; ++i)
+    for (size_t j = 0; j < classes; ++j)
+      if (logits->data()[i * classes + j] > max_vals[i])
+        max_vals[i] = logits->data()[i * classes + j];
 
-    auto logits_shifted = std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
-    size_t n = batch * classes;
-    for (size_t i = 0; i < batch; ++i)
-        for (size_t j = 0; j < classes; ++j)
-            logits_shifted->data()[i * classes + j] = logits->data()[i * classes + j] - max_vals[i];
+  auto logits_shifted =
+      std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
+  size_t n = batch * classes;
+  for (size_t i = 0; i < batch; ++i)
+    for (size_t j = 0; j < classes; ++j)
+      logits_shifted->data()[i * classes + j] =
+          logits->data()[i * classes + j] - max_vals[i];
 
-    auto exp_logits = std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
-    for (size_t i = 0; i < n; ++i)
-        exp_logits->data()[i] = std::exp(logits_shifted->data()[i]);
+  auto exp_logits =
+      std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
+  for (size_t i = 0; i < n; ++i)
+    exp_logits->data()[i] = std::exp(logits_shifted->data()[i]);
 
-    std::vector<float> row_sums(batch, 0.0f);
-    for (size_t i = 0; i < batch; ++i)
-        for (size_t j = 0; j < classes; ++j)
-            row_sums[i] += exp_logits->data()[i * classes + j];
+  std::vector<float> row_sums(batch, 0.0f);
+  for (size_t i = 0; i < batch; ++i)
+    for (size_t j = 0; j < classes; ++j)
+      row_sums[i] += exp_logits->data()[i * classes + j];
 
-    auto probs = std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
-    for (size_t i = 0; i < batch; ++i)
-        for (size_t j = 0; j < classes; ++j)
-            probs->data()[i * classes + j] = exp_logits->data()[i * classes + j] / row_sums[i];
+  auto probs = std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
+  for (size_t i = 0; i < batch; ++i)
+    for (size_t j = 0; j < classes; ++j)
+      probs->data()[i * classes + j] =
+          exp_logits->data()[i * classes + j] / row_sums[i];
 
-    auto mul_targets = std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
-    for (size_t i = 0; i < n; ++i)
-        mul_targets->data()[i] = -targets->data()[i] * std::log(probs->data()[i]);
+  auto mul_targets =
+      std::make_shared<Tensor>(logits->shape(), logits->requires_grad);
+  for (size_t i = 0; i < n; ++i)
+    mul_targets->data()[i] = -targets->data()[i] * std::log(probs->data()[i]);
 
-    auto out = mean(mul_targets);
+  auto out = mean(mul_targets);
 
-    // Backward hook
-    if (out->requires_grad) {
-        out->parents_ = {logits};
-        out->backward_fn_ = [logits, probs, targets, n]() {
-            for (size_t i = 0; i < n; ++i)
-                if (logits->requires_grad)
-                    logits->grad->data()[i] += (probs->data()[i] - targets->data()[i]) / n;
-        };
-    }
+  // Backward hook
+  if (out->requires_grad) {
+    out->parents_ = {logits};
+    out->backward_fn_ = [logits, probs, targets, n]() {
+      for (size_t i = 0; i < n; ++i)
+        if (logits->requires_grad)
+          logits->grad->data()[i] +=
+              (probs->data()[i] - targets->data()[i]) / n;
+    };
+  }
 
-    return out;
+  return out;
 }
 
 std::shared_ptr<Tensor> exp(const std::shared_ptr<Tensor> &x) {
-    auto out = std::make_shared<Tensor>(x->shape_, x->requires_grad);
-    size_t n = numel(x->shape_);
-    for (size_t i = 0; i < n; ++i)
-        out->data()[i] = std::exp(x->data()[i]);
+  auto out = std::make_shared<Tensor>(x->shape_, x->requires_grad);
+  size_t n = numel(x->shape_);
+  for (size_t i = 0; i < n; ++i)
+    out->data()[i] = std::exp(x->data()[i]);
 
-    if (out->requires_grad) {
-        out->parents_ = {x};
-        out->backward_fn_ = [out, x, n]() {
-            for (size_t i = 0; i < n; ++i)
-                x->grad->data()[i] += out->data()[i] * out->grad->data()[i];
-        };
-    }
-    return out;
+  if (out->requires_grad) {
+    out->parents_ = {x};
+    out->backward_fn_ = [out, x, n]() {
+      for (size_t i = 0; i < n; ++i)
+        x->grad->data()[i] += out->data()[i] * out->grad->data()[i];
+    };
+  }
+  return out;
 }
+
+// TODO: Concat

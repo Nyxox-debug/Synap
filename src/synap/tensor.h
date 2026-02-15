@@ -15,8 +15,10 @@ public:
   const float *data() const;
   const std::vector<size_t> &shape() const;
 
-  Tensor clone() const;
-  Tensor view(std::vector<size_t> new_shape) const;
+  // Tensor clone() const;
+  // Tensor view(const std::vector<size_t>& new_shape) const;
+std::shared_ptr<Tensor> clone() const;
+std::shared_ptr<Tensor> view(const std::vector<size_t>& new_shape) const;
 
   void zero_grad();
   void backward(std::shared_ptr<Tensor> grad_output);

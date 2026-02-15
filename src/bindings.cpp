@@ -12,14 +12,20 @@ PYBIND11_MODULE(synap, m) {
            py::arg("requires_grad") = false)
       .def("shape", &Tensor::shape)
       .def("clone", &Tensor::clone)
-      .def("view", &Tensor::view)
+      .def("view", &Tensor::view, py::arg("new_shape"))
       .def("set_values", &Tensor::set_values)
       .def("zero_grad", &Tensor::zero_grad)
-      .def("backward", [](Tensor &self) { self.backward(nullptr); })
       .def("backward",
-           [](Tensor &self, std::shared_ptr<Tensor> grad) {
-             self.backward(grad);
+           [](std::shared_ptr<Tensor> self) { self->backward(nullptr); })
+      .def("backward",
+           [](std::shared_ptr<Tensor> self, std::shared_ptr<Tensor> grad) {
+             self->backward(grad);
            })
+      // .def("backward", [](Tensor &self) { self.backward(nullptr); })
+      // .def("backward",
+      //      [](Tensor &self, std::shared_ptr<Tensor> grad) {
+      //        self.backward(grad);
+      //      })
       .def_readonly("requires_grad", &Tensor::requires_grad)
       .def_readwrite("grad", &Tensor::grad)
       .def_property_readonly("grad_values",
