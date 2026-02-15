@@ -28,11 +28,11 @@ class Neuron(Module):
             z = synap.Tensor.relu(z)
         return z
 
-        def parameters(self):
-            return [self.w, self.b]
+    def parameters(self):
+        return [self.w, self.b]
 
-        def __repr__(self):
-            return f"{'ReLU' if self.nonlin else 'Linear'}Neuron({self.w.shape()[0]})"
+    def __repr__(self):
+        return f"{'ReLU' if self.nonlin else 'Linear'}Neuron({self.w.shape()[0]})"
 
 class Layer(Module):
     def __init__(self, nin, nout, **kwargs):
