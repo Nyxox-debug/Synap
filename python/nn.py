@@ -23,10 +23,7 @@ class Neuron(Module):
         # x: Tensor of shape [nin]
         if len(x.shape()) == 1:
             x = x.view([1, x.shape()[0]]) # ensure column vector
-        # print(synap.tensor_data(x))
         z = synap.Tensor.add(synap.Tensor.matmul(x, self.w), self.b)
-        print(synap.tensor_data(z))
-        print(8*"-")
         if self.nonlin:
             z = synap.Tensor.relu(z)
         return z
