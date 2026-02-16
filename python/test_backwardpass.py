@@ -13,7 +13,7 @@ def test_backwardpass():
     print("y-shape: ", y.shape())
 
     # Model
-    m = nn.MLP(4, [4, 4, 4, 4, 1])
+    m = nn.MLP(4, [4, 1])
 
     # Forward
     out = m(x)
@@ -21,6 +21,7 @@ def test_backwardpass():
 
     # Loss (MSE)
     loss = synap.Tensor.mse(out, y)
+    print("Loss-data: ", synap.tensor_data(loss))
 
     # Backward
     loss.backward()

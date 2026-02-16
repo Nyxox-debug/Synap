@@ -17,8 +17,8 @@ public:
 
   // Tensor clone() const;
   // Tensor view(const std::vector<size_t>& new_shape) const;
-std::shared_ptr<Tensor> clone() const;
-std::shared_ptr<Tensor> view(const std::vector<size_t>& new_shape) const;
+  std::shared_ptr<Tensor> clone() const;
+  std::shared_ptr<Tensor> view(const std::vector<size_t> &new_shape) const;
 
   void zero_grad();
   void backward(std::shared_ptr<Tensor> grad_output);
@@ -59,6 +59,9 @@ std::shared_ptr<Tensor> view(const std::vector<size_t>& new_shape) const;
   friend std::shared_ptr<Tensor>
   softmax_cross_entropy(const std::shared_ptr<Tensor> &logits,
                         const std::shared_ptr<Tensor> &targets);
+
+  friend std::shared_ptr<Tensor>
+  concat(const std::vector<std::shared_ptr<Tensor>> &tensors);
 
   std::vector<size_t> shape_;
 

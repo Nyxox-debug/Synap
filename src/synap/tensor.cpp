@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <unordered_set>
 
+using std::shared_ptr;
+
 static size_t numel(const std::vector<size_t> &shape) {
   return std::accumulate(shape.begin(), shape.end(), size_t{1},
                          std::multiplies<>());
@@ -38,7 +40,6 @@ Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
   }
 }
 
-// NOTE: View into existing Tensor memory
 Tensor::Tensor(StoragePtr storage, std::vector<size_t> shape,
                std::vector<size_t> stride, size_t offset, bool requires_grad)
     : storage_(storage), shape_(shape), stride_(stride), offset_(offset),
@@ -62,6 +63,8 @@ const std::vector<size_t> &Tensor::shape() const { return shape_; }
 //   return out;
 // }
 
+// NOTE: View into existing Tensor memory
+
 // Tensor Tensor::view(std::vector<size_t> new_shape) const {
 //   if (numel(new_shape) != numel(shape_))
 //     throw std::runtime_error("View must preserve number of elements");
@@ -70,31 +73,64 @@ const std::vector<size_t> &Tensor::shape() const { return shape_; }
 // }
 
 std::shared_ptr<Tensor> Tensor::clone() const {
-    auto out = std::make_shared<Tensor>(shape_, requires_grad);
-    size_t n = numel(shape_);
-    std::copy(data(), data() + n, out->data());
-    return out;
+  auto out = std::make_shared<Tensor>(shape_, requires_grad);
+  size_t n = numel(shape_);
+  std::copy(data(), data() + n, out->data());
+  return out;
 }
 
-std::shared_ptr<Tensor> Tensor::view(const std::vector<size_t>& new_shape) const {
-    if (numel(new_shape) != numel(shape_))
-        throw std::runtime_error("View must preserve number of elements");
+std::shared_ptr<Tensor>
+Tensor::view(const std::vector<size_t> &new_shape) const {
+  if (numel(new_shape) != numel(shape_))
+    throw std::runtime_error("View must preserve number of elements");
 
-    std::vector<size_t> new_stride(new_shape.size());
-    size_t stride = 1;
-    for (int i = new_shape.size() - 1; i >= 0; --i) {
-        new_stride[i] = stride;
-        stride *= new_shape[i];
-    }
+  std::vector<size_t> new_stride(new_shape.size());
+  size_t stride = 1;
+  for (int i = new_shape.size() - 1; i >= 0; --i) {
+    new_stride[i] = stride;
+    stride *= new_shape[i];
+  }
 
-    return std::make_shared<Tensor>(
-        storage_,
-        new_shape,
-        new_stride,
-        offset_,
-        requires_grad
-    );
+  auto out = std::make_shared<Tensor>(storage_, new_shape, new_stride, offset_,
+                                      requires_grad);
+
+  // Set up backward propagation for view operation
+  if (requires_grad) {
+    // Need to capture parent as a shared_ptr to keep it alive
+    auto parent = std::const_pointer_cast<Tensor>(shared_from_this());
+    out->parents_ = {parent};
+
+    out->backward_fn_ = [out, parent]() {
+      if (!parent->grad) {
+        parent->grad = std::make_shared<Tensor>(parent->shape_, false);
+      }
+
+      size_t n = numel(parent->shape_);
+      // Gradients flow back element-wise since view is just a reshape
+      for (size_t i = 0; i < n; ++i) {
+        parent->grad->data()[i] += out->grad->data()[i];
+      }
+    };
+  }
+
+  return out;
 }
+
+// std::shared_ptr<Tensor>
+// Tensor::view(const std::vector<size_t> &new_shape) const {
+//   if (numel(new_shape) != numel(shape_))
+//     throw std::runtime_error("View must preserve number of elements");
+//
+//   std::vector<size_t> new_stride(new_shape.size());
+//   size_t stride = 1;
+//   for (int i = new_shape.size() - 1; i >= 0; --i) {
+//     new_stride[i] = stride;
+//     stride *= new_shape[i];
+//   }
+//
+//   return std::make_shared<Tensor>(storage_, new_shape, new_stride, offset_,
+//                                   requires_grad);
+// }
 
 void Tensor::zero_grad() {
   if (!grad)
@@ -753,3 +789,52 @@ std::shared_ptr<Tensor> exp(const std::shared_ptr<Tensor> &x) {
 }
 
 // TODO: Concat
+
+std::shared_ptr<Tensor>
+concat(const std::vector<std::shared_ptr<Tensor>> &tensors) {
+
+  if (tensors.empty())
+    throw std::runtime_error("concat: empty tensor list");
+
+  // Compute total size
+  size_t total = 0;
+  bool requires_grad = false;
+
+  for (auto &t : tensors) {
+    total += numel(t->shape_);
+    requires_grad = requires_grad || t->requires_grad;
+  }
+
+  auto out =
+      std::make_shared<Tensor>(std::vector<size_t>{total}, requires_grad);
+
+  // Forward copy
+  size_t offset = 0;
+  for (auto &t : tensors) {
+    size_t n = numel(t->shape_);
+    std::copy(t->data(), t->data() + n, out->data() + offset);
+    offset += n;
+  }
+
+  if (requires_grad) {
+    out->parents_ = tensors;
+
+    out->backward_fn_ = [out, tensors]() {
+      size_t offset = 0;
+
+      for (auto &t : tensors) {
+        size_t n = numel(t->shape_);
+
+        if (t->requires_grad) {
+          for (size_t i = 0; i < n; ++i) {
+            t->grad->data()[i] += out->grad->data()[offset + i];
+          }
+        }
+
+        offset += n;
+      }
+    };
+  }
+
+  return out;
+}

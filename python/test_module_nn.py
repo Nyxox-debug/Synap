@@ -29,6 +29,7 @@ def test_MLP():
     mlp = nn.MLP(4, [8, 8, 4, 1])
     out = mlp(x)
 
+    print("len of MLP params: ", len(mlp.parameters()))
     assert isinstance(out, synap.Tensor), "MLP output should be a Tensor"
     assert out.shape() == [1], f"Unexpected output shape: {out.shape()}"
     print(f"test_MLP {synap.tensor_data(out)}")

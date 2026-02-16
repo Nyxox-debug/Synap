@@ -408,6 +408,34 @@ class Tensor:
         """
         ...
 
+    @staticmethod
+    def concat(tensors: list["Tensor"], axis: int = 0) -> "Tensor":
+        """
+        Concatenate multiple tensors along a given axis.
+
+        Forward pass:
+            Creates a new tensor by joining input tensors along `axis`.
+            All tensors must have the same shape except in the concatenation axis.
+
+        Backward pass:
+            Splits the upstream gradient along `axis` and propagates
+            the corresponding slice back to each input tensor.
+
+        Parameters
+        ----------
+        tensors : list[Tensor]
+            List of tensors to concatenate. Must be non-empty and
+            shape-compatible.
+        axis : int, optional
+            Axis along which concatenation is performed (default 0).
+
+        Returns
+        -------
+        Tensor
+            New tensor containing the concatenated result.
+        """
+        ...
+
 def tensor_data(t: Tensor) -> list[float]:
     """
     Return the tensor values as a Python list.

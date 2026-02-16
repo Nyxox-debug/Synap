@@ -43,12 +43,15 @@ class Layer(Module):
         if len(outputs) == 1:
             return outputs[0]
         # concatenate outputs along last axis
-        out_values = []
-        for o in outputs:
-            out_values.extend(synap.tensor_data(o))
-        out = synap.Tensor([len(out_values)], requires_grad=True)
-        out.set_values(out_values)
-        return out
+        # out_values = []
+        # for o in outputs:
+        #     out_values.extend(synap.tensor_data(o))
+        # out = synap.Tensor([len(out_values)], requires_grad=True)
+        # out.set_values(out_values)
+        # print("Layer out: ", synap.tensor_data(out))
+        # return out
+        return synap.Tensor.concat(outputs)
+
 
     def parameters(self):
         return [p for n in self.neurons for p in n.parameters()]
@@ -60,7 +63,8 @@ class MLP(Module):
     def __init__(self, nin, nouts):
         sz = [nin] + nouts
         self.layers = [
-            Layer(sz[i], sz[i+1], nonlin=(i != len(nouts)-1))
+            # Layer(sz[i], sz[i+1], nonlin=(i != len(nouts)-1))
+            Layer(sz[i], sz[i+1], nonlin=False)
             for i in range(len(nouts))
         ]
 

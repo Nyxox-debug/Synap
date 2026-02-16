@@ -72,6 +72,11 @@ PYBIND11_MODULE(synap, m) {
                     return softmax_cross_entropy(logits, targets);
                   })
 
+      .def_static("concat",
+                  [](const std::vector<std::shared_ptr<Tensor>> &tensors) {
+                    return concat(tensors);
+                  })
+
       // Linear Algebra Ops
       .def_static("transpose",
                   [](const std::shared_ptr<Tensor> &a) { return transpose(a); })
