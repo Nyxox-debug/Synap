@@ -19,7 +19,7 @@ static bool is_scalar(const std::shared_ptr<Tensor> &t) {
 Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
     : shape_(shape), offset_(0), requires_grad(requires_grad) {
 
-  size_t n = numel(shape); // Total number of elements in Tensor
+  size_t n = numel(shape);
   storage_ = std::make_shared<Storage>(n);
   backward_fn_ = [] {};
 
@@ -27,8 +27,7 @@ Tensor::Tensor(std::vector<size_t> shape, bool requires_grad)
     grad = std::make_shared<Tensor>(shape, false);
   }
 
-  stride_.resize(shape.size()); // NOTE: .resize ensures stride has one element
-                                // per dimension
+  stride_.resize(shape.size());
   size_t s = 1;
   for (int i = shape.size() - 1; i >= 0; --i) { // i represents a dimension
     stride_[i] = s;
@@ -62,8 +61,6 @@ const std::vector<size_t> &Tensor::shape() const { return shape_; }
 //   std::copy(data(), data() + n, out.data());
 //   return out;
 // }
-
-// NOTE: View into existing Tensor memory
 
 // Tensor Tensor::view(std::vector<size_t> new_shape) const {
 //   if (numel(new_shape) != numel(shape_))
@@ -116,22 +113,6 @@ Tensor::view(const std::vector<size_t> &new_shape) const {
   return out;
 }
 
-// std::shared_ptr<Tensor>
-// Tensor::view(const std::vector<size_t> &new_shape) const {
-//   if (numel(new_shape) != numel(shape_))
-//     throw std::runtime_error("View must preserve number of elements");
-//
-//   std::vector<size_t> new_stride(new_shape.size());
-//   size_t stride = 1;
-//   for (int i = new_shape.size() - 1; i >= 0; --i) {
-//     new_stride[i] = stride;
-//     stride *= new_shape[i];
-//   }
-//
-//   return std::make_shared<Tensor>(storage_, new_shape, new_stride, offset_,
-//                                   requires_grad);
-// }
-
 void Tensor::zero_grad() {
   if (!grad)
     return;
@@ -171,7 +152,7 @@ void Tensor::backward(std::shared_ptr<Tensor> grad_output) {
     std::fill(grad->data(), grad->data() + n, 1.0f);
   }
 
-  // Build topological order
+  // topoboi :) 
   std::vector<std::shared_ptr<Tensor>> topo;
   std::unordered_set<Tensor *> visited;
   build_topo(shared_from_this(), visited, topo);
@@ -242,7 +223,7 @@ std::shared_ptr<Tensor> mul(const std::shared_ptr<Tensor> &a,
 std::shared_ptr<Tensor> add(const std::shared_ptr<Tensor> &a,
                             const std::shared_ptr<Tensor> &b) {
 
-  // Case 1: same shape → existing behavior
+  // Case 1: same shape, existing behavior
   if (a->shape_ == b->shape_) {
     auto out = std::make_shared<Tensor>(a->shape_,
                                         a->requires_grad || b->requires_grad);

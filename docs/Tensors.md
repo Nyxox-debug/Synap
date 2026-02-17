@@ -30,9 +30,17 @@ A `Tensor` in Synap is a view into a contiguous block of `float` memory. Multipl
 struct Storage {
     float* data;
     size_t size;
-    explicit Storage(size_t n);
-    ~Storage();
+
+    Storage(size_t size)
+        : size(size) {
+        data = new float[size]();
+    }
+
+    ~Storage() {
+        delete[] data;
+    }
 };
+
 using StoragePtr = std::shared_ptr<Storage>;
 ```
 
