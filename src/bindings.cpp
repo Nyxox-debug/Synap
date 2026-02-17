@@ -39,7 +39,7 @@ PYBIND11_MODULE(synap, m) {
                                                          t->grad->data() + n);
                              })
 
-      // Add, Sub,  Mul and Div
+      // add, sub, mul, div, mean, sigmoid, tanh, relu, mse, backward and concat
       .def_static("add",
                   [](const std::shared_ptr<Tensor> &a,
                      const std::shared_ptr<Tensor> &b) { return add(a, b); })
