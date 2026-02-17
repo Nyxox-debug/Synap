@@ -4,8 +4,6 @@
 
 Synap is a from-scratch autograd engine and tensor library — think micrograd, but with a typed C++ core and a clean Python API via pybind11. It supports forward computation, reverse-mode automatic differentiation, and a simple neural network module system for building and training models.
 
----
-
 ## Features
 
 - **Tensor** — n-dimensional float array with shape, stride, and offset, backed by shared storage
