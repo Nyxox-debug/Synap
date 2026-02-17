@@ -39,4 +39,5 @@ Thumbs.db
 
 p.md
 python/tests/
+python/mnist/
 .cache/
