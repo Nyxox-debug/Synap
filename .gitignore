@@ -38,5 +38,5 @@ docs/_build/
 Thumbs.db
 
 p.md
-./python/tests/
+python/tests/
 .cache/
