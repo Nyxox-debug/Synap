@@ -40,4 +40,5 @@ Thumbs.db
 p.md
 python/tests/
 python/mnist/
+python/grad_descent/
 .cache/
