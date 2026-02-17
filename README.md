@@ -40,8 +40,6 @@ Synap/
 └── CMakePresets.json
 ```
 
----
-
 ## Quick Start
 
 ### Build
@@ -57,7 +55,6 @@ See [`docs/setup.md`](docs/setup.md) for detailed environment setup, including P
 
 After building, the `synap` module is available in the build output. Add it to your `PYTHONPATH` or install it directly.
 
----
 
 ## Usage
 
@@ -116,8 +113,6 @@ for _ in range(100):
         param.set_values([v - lr * g for v, g in zip(vals, grads)])
 ```
 
----
-
 ## Operations Reference
 
 | Operation | Description |
@@ -142,7 +137,6 @@ for _ in range(100):
 | `.backward()` | Trigger reverse-mode autodiff |
 | `.zero_grad()` | Zero out gradient buffer |
 
----
 
 ## Autodiff
 
@@ -158,7 +152,6 @@ loss.backward()
 
 Gradients accumulate with `+=`, so `zero_grad()` must be called before each backward pass.
 
----
 
 ## Docs
 
