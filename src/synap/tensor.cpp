@@ -788,8 +788,6 @@ std::shared_ptr<Tensor> exp(const std::shared_ptr<Tensor> &x) {
   return out;
 }
 
-// TODO: Concat
-
 std::shared_ptr<Tensor>
 concat(const std::vector<std::shared_ptr<Tensor>> &tensors) {
 
