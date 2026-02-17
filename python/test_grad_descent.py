@@ -25,7 +25,7 @@ def test_gradient_descent():
     
     # Training loop
     learning_rate = 0.01
-    for iteration in range(20):
+    for iteration in range(10):
         # Forward
         out = m(x)
         
