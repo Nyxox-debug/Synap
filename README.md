@@ -48,7 +48,7 @@ Synap/
 ### Build
 
 ```bash
-cmake --preset default
+cmake --preset setup 
 cmake --build build
 ```
 
