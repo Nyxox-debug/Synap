@@ -38,7 +38,7 @@ def test_gradient_descent():
         m.zero_grad()
         loss.backward()
         
-        # Update parameters (gradient descent step)
+        # Update parameters (gradient descent step) - This is an Explicitly written Gradient Descent 
         for param in m.parameters():
             param_values = synap.tensor_data(param)
             grad_values = param.grad_values
