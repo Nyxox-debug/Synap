@@ -38,7 +38,7 @@ source venv/bin/activate
 Synap uses CMake presets. The default preset configures a release build with pybind11 bindings.
 
 ```bash
-cmake --preset default
+cmake --preset setup 
 cmake --build build
 ```
 
@@ -48,8 +48,7 @@ After a successful build, the compiled `synap` module (`.so` on Linux/macOS, `.p
 
 ## Making the Module Available
 
-
-### Option A — Add to PYTHONPATH (Recommended)
+### Add to your PYTHONPATH 
 
 > **NOTE:** I use `direnv` for automatic environment variable setup.
 
@@ -71,22 +70,6 @@ export PYTHONPATH="$PWD/build:$PYTHONPATH"
 ```
 
 Add that line to your shell rc file (`~/.bashrc`, `~/.zshrc`) to make it permanent. (Not recommended)
-
-### Option B — Run from the build directory
-
-```bash
-cd build
-python3 -c "import synap; print('ok')"
-```
-
-
-### Option C — Editable install (if a `setup.py`/`pyproject.toml` is added later)
-
-```bash
-pip install -e .
-```
-
----
 
 ## CMakePresets.json
 
